@@ -1,228 +1,660 @@
 <!DOCTYPE html>
-<html lang="pt-PT">
+<html lang="pt-PT" id="htmlRoot">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UNIFED-PROBATUM v13.12.2-i18n — Sistema de Peritagem Forense Digital</title>
+    <meta name="description" content="UNIFED - PROBATUM (Unidade Independente de Inteligência Forense Económica e Digital) v13.12.2-i18n · DORA COMPLIANT · COURT READY · PROVA DIGITAL MATERIAL">
+    <meta name="author" content="UNIFED - PROBATUM · Unidade Independente de Inteligência Forense Económica e Digital">
+    <title>UNIFED - PROBATUM · v13.12.2-i18n · DORA COMPLIANT · COURT READY · SMOKING GUN · CADEIA DE CUSTÓDIA</title>
 
-    <!-- ================================================================ -->
-    <!-- CSS PRINCIPAL E COMPLEMENTAR                                      -->
-    <!-- ================================================================ -->
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🔬%3C/text%3E%3C/svg%3E">
+
+    <script>
+   (function loadOTSOptimized() {
+    // [AÇÃO DEEPSEEK]: Substituir chamada CDN direta no index.html
+    var otsLib = 'https://api.unifed.com/ots-proxy?url=' + encodeURIComponent('https://unpkg.com/javascript-opentimestamps@0.0.12/dist/opentimestamps.min.js');
+    var s = document.createElement('script');
+    s.src = otsLib;
+    s.onload = function() { console.log('[UNIFED] OTS Original carregado via proxy.'); };
+    s.onerror = function() {
+        console.warn('[UNIFED] Falha na CDN OTS. Ativando Custódia Nível 2 (Selo Local).');
+        window.OTS_FALLBACK = true;
+        // Injeção de selo de tempo local via Proxy Worker se necessário
+    };
+    document.head.appendChild(s);
+})();
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="style_additions.css">
-
-    <!-- ================================================================ -->
-    <!-- BIBLIOTECAS EXTERNAS                                              -->
-    <!-- ================================================================ -->
-    <!-- Font Awesome (ícones) -->
-    <link rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-          integrity="sha512-iecdLmaskl7CVJkEZSMUkrQ6usKGgiYjwlrfcqKKcfx00MLp3YQe98bNvBCzEAKJRjL4NnHPVcKMuMrIZs7wqw=="
-          crossorigin="anonymous" referrerpolicy="no-referrer">
-
-    <!-- Chart.js (gráficos) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"
-            integrity="sha512-d5kLQpDQdMp5+mzgP8f5RpvPV+Dak4lFa8UVf1q5BVj2I04PPlBrF/+AxAXTHjg/dHp6/3z6DxMEQu0JqYeZA=="
-            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-
-    <!-- OpenTimestamps (certificação de tempo) — Fail-Safe para ambientes air-gapped -->
-    <!-- VEC-03: onerror silencioso activa Custódia Nível 2 (Selo Local SHA-256)      -->
-    <script
-        id="ots-script"
-        async
-        src="https://opentimestamps.org/lib/opentimestamps.js"
-        onerror="(function(){
-            window._OTS_FALLBACK_ACTIVE = true;
-            if (typeof window.OpenTimestamps === 'undefined') {
-                window.OpenTimestamps = {
-                    _STUB: true,
-                    stamp: function() { return Promise.resolve({ _type: 'OTS_PENDING_STUB', note: 'CDN bloqueado. Hash SHA-256 real e imutável. Reenviar em ambiente com acesso à internet.' }); },
-                    verify: function() { return Promise.resolve(false); }
-                };
-            }
-            console.info('[UNIFED-OTS] CDN indisponível. Custódia Nível 2 activada (Selo Local PROBATUM).');
-        }())">
-    </script>
-    <script>
-        // Timeout de segurança: se OTS não carregar em 8s, activar Nível 2
-        setTimeout(function() {
-            if (typeof window.OpenTimestamps === 'undefined') {
-                window._OTS_FALLBACK_ACTIVE = true;
-                window.OpenTimestamps = {
-                    _STUB: true,
-                    stamp: function() { return Promise.resolve({ _type: 'OTS_PENDING_STUB' }); },
-                    verify: function() { return Promise.resolve(false); }
-                };
-                console.info('[UNIFED-OTS] Timeout 8s. Custódia Nível 2 activada.');
-            }
-        }, 8000);
-    </script>
 </head>
 <body>
-    <!-- ================================================================ -->
-    <!-- ESTRUTURA PRINCIPAL DO DASHBOARD                                  -->
-    <!-- ================================================================ -->
 
-    <!-- Header com botões de controlo -->
-    <header id="mainHeader" class="unifed-header">
-        <div class="header-left">
-            <h1>🔐 UNIFED-PROBATUM</h1>
-            <span class="version-badge">v13.12.2-i18n · Full Build 2026-04-18</span>
-        </div>
-        <div class="header-right">
-            <button id="langToggleBtn" class="btn-lang-toggle" title="Alternar PT/EN">
-                <i class="fas fa-globe"></i> PT/EN
-            </button>
-            <button id="custodyChainTriggerBtn" class="btn-tool" title="Verificar cadeia de custódia">
-                <i class="fas fa-link"></i> QR CODE
-            </button>
-        </div>
-    </header>
+    <div id="splashScreen" class="splash-screen">
+        <div class="laser-h"></div>
+        <div class="laser-v"></div>
 
-    <!-- Dashboard principal (inicialmente invisível — activado por unifed_panel_activator.js) -->
-    <div id="pureDashboardWrapper" style="display:block; opacity:0; transition: opacity 0.3s ease;">
-        <div id="pureDashboard" class="dashboard-container">
-
-            <!-- Secção de KPIs -->
-            <section id="kpisSection" class="kpis-grid">
-                <h2>MÉTRICAS OPERACIONAIS</h2>
-                <!-- KPIs injectados via JavaScript -->
-            </section>
-
-            <!-- Gráfico principal (display:none inicial — revelado por renderChart) -->
-            <section id="mainChartContainer" style="display:none; opacity:0;">
-                <h2>ANÁLISE DE FLUXOS FINANCEIROS</h2>
-                <canvas id="mainChart" height="100"></canvas>
-            </section>
-
-            <!-- Gráfico de discrepâncias (display:none inicial — revelado por renderDiscrepancyChart) -->
-            <!-- VEC-02: ID corrigido para #mainDiscrepancyChart (compatível com script.js e enrichment.js) -->
-            <section id="mainDiscrepancyChartContainer" style="display:none; opacity:0;">
-                <h2>ANÁLISE DE DISCREPÂNCIAS · GAP FORENSE — € 2.184,95 | 89,26%</h2>
-                <canvas id="mainDiscrepancyChart" height="100"></canvas>
-            </section>
-
-            <!-- Card AMT-01 injectado por unifed_card_amt01.js -->
-            <section id="complianceSection">
-            </section>
-
-            <!-- Toolbar de ferramentas -->
-            <section id="export-tools-container" class="toolbar-section">
-                <h3>FERRAMENTAS DE ANÁLISE</h3>
-                <button id="exportPDFBtn" class="btn-tool" title="Gerar Relatório Técnico (PDF)">
-                    <i class="fas fa-file-pdf"></i> PARECER TÉCNICO
-                </button>
-                <button id="exportJSONBtn" class="btn-tool" title="Exportar dados em JSON">
-                    <i class="fas fa-file-code"></i> EXPORTAR JSON
-                </button>
-                <button id="resetBtn" class="btn-tool" title="Reiniciar sistema e apagar dados">
-                    <i class="fas fa-redo"></i> REINICIAR
-                </button>
-                <button id="clearConsoleBtn" class="btn-tool" title="Limpar logs de consola">
-                    <i class="fas fa-trash"></i> LIMPAR CONSOLE
-                </button>
-            </section>
-
-            <!-- Consola de diagnóstico -->
-            <section id="consoleSection" class="console-section">
-                <h3>CONSOLA DE DIAGNÓSTICO</h3>
-                <div id="consoleOutput" class="console-output">
+        <div class="splash-content">
+            <div class="splash-left">
+                <div class="splash-logo">
+                    <i class="fas fa-fingerprint"></i>
                 </div>
-            </section>
+                
+                <h1>SISTEMA DE PERITAGEM FORENSE</h1>
+                <h2>UNIFED - PROBATUM</h2>
+                
+                <div class="privacy-highlight">
+                    <i class="fas fa-shield-halved"></i>
+                    <span><strong>Privacy by Design</strong><br>Processamento em conformidade com o Art. 5.º do RGPD <small>(Integridade e Confidencialidade)</small></span>
+                </div>
+            </div>
+
+            <div class="splash-right">
+                <div class="metadata-panel">
+                    <p><strong>Módulo:</strong> Investigação Digital · ISO/IEC 27037</p>
+                    <p><strong>Big Data Accumulator:</strong> v13.12.2-i18n · DORA Compliant · Smoking Gun · NEXUS</p>
+                    <p><strong>CSC:</strong> Cadeia de Custódia Ativa</p>
+                </div>
+                
+                <div class="action-buttons">
+                    <button id="viewLogsBtn" class="splash-btn secondary">
+                        <i class="fas fa-history"></i> <span id="splashLogsBtnText">REGISTO DE ATIVIDADES (LOG)</span>
+                    </button>
+                    
+                    <button id="startSessionBtn" class="splash-btn primary">
+                        <i class="fas fa-power-off"></i>
+                        <span id="splashStartBtnText">INICIAR METODOLOGIA DE ANÁLISE E PERITAGEM FORENSE</span>
+                    </button>
+                </div>
+
+                <div class="splash-warning-box">
+                    <p><i class="fas fa-gavel"></i> AVISO DE PROTEÇÃO UNIFED - PROBATUM</p>
+                    <small>Este sistema destina-se exclusivamente a uso pericial autorizado. O acesso não autorizado constitui crime de Acesso Ilegítimo, previsto no Artigo 6.º da Lei do Cibercrime (Lei n.º 109/2009, de 15 de setembro). Ao iniciar o utilizador aceita os termos e condições aqui mencionados.</small>
+                </div>
+                
+                <p class="version-footer">UNIFED - PROBATUM © 2024/2026 EM v13.12.2-i18n · DORA COMPLIANT · SMOKING GUN · COURT READY · NEXUS · BIG DATA</p>
+            </div>
         </div>
     </div>
 
-    <!-- Modal de Cadeia de Custódia -->
-    <div id="hashVerificationModal" class="modal" style="display:none; opacity:0;">
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-content">
+            <div class="loading-spinner"><i class="fas fa-atom"></i></div>
+            <h2 id="loadingTitle" data-pt="INICIALIZAÇÃO DO SISTEMA" data-en="SYSTEM INITIALISATION">INICIALIZAÇÃO DO SISTEMA</h2>
+            <p id="loadingSubtitle" data-pt="A carregar módulos forenses BIG DATA..." data-en="Loading BIG DATA forensic modules...">A carregar módulos forenses BIG DATA...</p>
+            <div class="loading-progress">
+                <div id="loadingProgress" class="loading-progress-bar"></div>
+            </div>
+            <p id="loadingStatusText" class="loading-status">0%</p>
+        </div>
+    </div>
+
+    <div id="mainContainer" class="main-container">
+        
+        <header class="main-header">
+            <div class="header-content">
+                <div class="logo-section">
+                    <i class="fas fa-balance-scale"></i>
+                    <div>
+                        <h1>
+                            UNIFED - PROBATUM 
+                            <span class="version-badge">v13.12.2-i18n</span>
+                        </h1>
+                        <p class="subtitle" id="headerSubtitle">ISO/IEC 27037 | NIST SP 800-86 | INTERPOL · CSC | BIG DATA</p>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <button id="demoModeBtn" class="btn-demo-nav">
+                        <i class="fas fa-flask"></i>
+                        <span id="demoBtnText">CASO REAL (ANONIMIZADO)</span>
+                    </button>
+                    <button id="langToggleBtn" class="btn-lang-toggle" title="Alternar idioma PT/EN">
+                        <i class="fas fa-globe"></i>
+                        <span id="currentLangLabel">EN</span>
+                    </button>
+                    <button id="viewLogsHeaderBtn" class="btn-tool" title="Ver Registo de Atividades (Art. 30 RGPD)">
+                        <i class="fas fa-history"></i>
+                    </button>
+                    <button id="audioToggleBtn"
+                        onclick="var _s = window.NIFAF ? NIFAF.toggle() : false; this.innerHTML = _s ? '<i class=\'fas fa-volume-up\'></i>' : '<i class=\'fas fa-volume-mute\'></i>'; this.style.borderColor = _s ? 'var(--accent-cyan)' : ''; this.style.color = _s ? 'var(--accent-cyan)' : '';"
+                        class="btn-tool"
+                        style="font-size: 0.8rem;"
+                        title="Alerta Auditivo Forense (NIFAF) — 180Hz/140Hz · Ativa quando omissão > 15%">
+                        <i class="fas fa-volume-mute"></i>
+                    </button>
+                </div>
+
+                <div class="session-info">
+                    <div class="timestamp-fbi">
+                        <strong>SESSÃO:</strong> <span id="sessionIdDisplay" class="session-id">--------</span><br>
+                        <span id="currentDate"></span> | <span id="currentTime"></span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="app-container">
+            
+            <aside class="sidebar">
+                
+                <div class="sidebar-header-fixed" id="clientIdentificationBlock">
+                    <h3 id="sidebarIdTitle" role="heading" aria-level="2"><i class="fas fa-user-shield"></i> IDENTIFICAÇÃO DO SUJEITO PASSIVO</h3>
+                    <div class="client-identification-fixed">
+                        <div class="form-group-fixed">
+                            <label id="lblClientName" for="clientNameFixed"><i class="fas fa-id-card"></i> Nome / Denominação Social</label>
+                            <input type="text" id="clientNameFixed" placeholder="Nome completo ou empresa">
+                        </div>
+                        <div class="form-group-fixed">
+                            <label id="lblNIF" for="clientNIFFixed"><i class="fas fa-hashtag"></i> NIF</label>
+                            <input type="text" id="clientNIFFixed" placeholder="123456789" maxlength="9">
+                        </div>
+                        <div class="btn-group-fixed">
+                            <button id="registerClientBtnFixed" class="btn-primary">
+                                <i class="fas fa-check-double"></i> <span id="btnRegister">VALIDAR IDENTIDADE</span>
+                            </button>
+                        </div>
+                        <div id="clientStatusFixed" class="client-status-fixed" style="display:none;">
+                            <i class="fas fa-shield-alt"></i>
+                            <span id="clientNameDisplayFixed"></span> | NIF: <span id="clientNifDisplayFixed"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="sidebar-filters">
+                    <h3 id="sidebarParamTitle"><i class="fas fa-sliders-h"></i> PARÂMETROS DE AUDITORIA FORENSE</h3>
+                    
+                    <div class="info-fixed">
+                        <div class="info-item">
+                            <span class="info-label" id="lblFiscalYear"><i class="fas fa-calendar-alt"></i> ANO FISCAL EM EXAME</span>
+                            <select id="anoFiscal"></select>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label" id="lblPeriodo"><i class="fas fa-clock"></i> PERÍODO TEMPORAL</span>
+                            <select id="periodoAnalise">
+                                <option value="anual"  data-pt="Exercício Completo (Anual)"  data-en="Full Year (Annual)">Exercício Completo (Anual)</option>
+                                <option value="1s"     data-pt="1.º Semestre"                data-en="1st Semester">1.º Semestre</option>
+                                <option value="2s"     data-pt="2.º Semestre"                data-en="2nd Semester">2.º Semestre</option>
+                                <option value="trimestral" data-pt="Trimestral"              data-en="Quarterly">Trimestral</option>
+                                <option value="mensal" data-pt="Mensal"                      data-en="Monthly">Mensal</option>
+                            </select>
+                        </div>
+                        <div class="info-item" id="trimestralSelectorContainer" style="display:none;">
+                            <span class="info-label"><i class="fas fa-filter"></i> <span id="lblTrimestre" data-pt="TRIMESTRE ACTIVO" data-en="ACTIVE QUARTER">TRIMESTRE ACTIVO</span></span>
+                            <select id="trimestralSelector">
+                                <option value="1" data-pt="1.º Trimestre" data-en="1st Quarter">1.º Trimestre</option>
+                                <option value="2" data-pt="2.º Trimestre" data-en="2nd Quarter">2.º Trimestre</option>
+                                <option value="3" data-pt="3.º Trimestre" data-en="3rd Quarter">3.º Trimestre</option>
+                                <option value="4" data-pt="4.º Trimestre" data-en="4th Quarter">4.º Trimestre</option>
+                            </select>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label" id="lblPlatform"><i class="fas fa-mobile-alt"></i> PLATAFORMA DIGITAL</span>
+                            <select id="selPlatformFixed">
+                                <option value="bolt">Bolt Operations OÜ</option>
+                                <option value="uber">Uber B.V.</option>
+                                <option value="freenow">FREE NOW</option>
+                                <option value="cabify">Cabify</option>
+                                <option value="indrive">inDrive</option>
+                                <option value="outra">Plataforma A</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="evidence-management-section-solid">
+                    <button id="openEvidenceModalBtn" class="evidence-management-btn-solid">
+                        <span><i class="fas fa-folder-open"></i> <span id="btnEvidence">GESTÃO DE EVIDÊNCIAS</span></span>
+                        <span id="evidenceCountTotal" class="evidence-count-solid">0</span>
+                    </button>
+
+                    <div class="counters-compact">
+                        <div class="counter-item-compact">
+                            <span id="controlCountCompact" class="counter-value-compact">0</span>
+                            <span class="counter-label-compact">CTRL</span>
+                        </div>
+                        <div class="counter-item-compact">
+                            <span id="saftCountCompact" class="counter-value-compact">0</span>
+                            <span class="counter-label-compact">SAF-T</span>
+                        </div>
+                        <div class="counter-item-compact">
+                            <span id="invoiceCountCompact" class="counter-value-compact">0</span>
+                            <span class="counter-label-compact">FAT</span>
+                        </div>
+                        <div class="counter-item-compact">
+                            <span id="statementCountCompact" class="counter-value-compact">0</span>
+                            <span class="counter-label-compact">EXT</span>
+                        </div>
+                        <div class="counter-item-compact">
+                            <span id="dac7CountCompact" class="counter-value-compact">0</span>
+                            <span class="counter-label-compact">DAC7</span>
+                        </div>
+                    </div>
+
+                    <button id="analyzeBtn" class="btn-forensic" disabled>
+                        <i class="fas fa-search-dollar"></i> <span id="btnAnalyze">EXECUTAR PERÍCIA</span>
+                    </button>
+                </div>
+
+                <div class="conformity-seals">
+                    <h4><i class="fas fa-certificate"></i> <span data-pt="CERTIFICAÇÕES &amp; CONFORMIDADE" data-en="CERTIFICATIONS &amp; COMPLIANCE">CERTIFICAÇÕES &amp; CONFORMIDADE</span></h4>
+                    <div class="seals-grid">
+                        <div class="seal-item" data-pt="Segue as diretrizes da norma ISO/IEC 27001" data-en="Follows ISO/IEC 27001 guidelines" title="Segue as diretrizes da norma ISO/IEC 27001"><i class="fas fa-shield-alt"></i> ISO 27001</div>
+                        <div class="seal-item" data-pt="Segue as diretrizes da norma ISO/IEC 27035" data-en="Follows ISO/IEC 27035 guidelines" title="Segue as diretrizes da norma ISO/IEC 27035"><i class="fas fa-shield-virus"></i> ISO 27035</div>
+                        <div class="seal-item" data-pt="Segue as diretrizes da norma ISO/IEC 27037" data-en="Follows ISO/IEC 27037 guidelines" title="Segue as diretrizes da norma ISO/IEC 27037"><i class="fas fa-microchip"></i> ISO 27037</div>
+                    </div>
+                    <div class="privacy-badge">
+                        <i class="fas fa-lock"></i>
+                        <span><strong>Privacy by Design</strong><br><span data-pt="Processamento 100% local" data-en="100% local processing">Processamento 100% local</span></span>
+                    </div>
+                    <button id="forensicWipeBtn" class="btn-wipe">
+                        <i class="fas fa-broom"></i> <span id="wipeBtnText">PURGA TOTAL DE DADOS (LIMPEZA BINÁRIA)</span>
+                    </button>
+                </div>
+            </aside>
+
+            <main class="analysis-area">
+                
+                <div class="toolbar-section">
+                    <!-- TOOLBAR UNIFICADA: 7 botões · largura total · tamanho igual -->
+                    <div id="export-tools-container" class="toolbar-unified">
+                        <button id="exportPDFBtn" class="btn-toolbar-item" onclick="if(typeof exportPDF==='function') exportPDF();">
+                            <i class="fas fa-file-pdf"></i>
+                            <span id="btnPDF">PARECER TÉCNICO</span>
+                        </button>
+                        <button id="exportJSONBtn" class="btn-toolbar-item" onclick="if(typeof exportDataJSON==='function') exportDataJSON();">
+                            <i class="fas fa-file-code"></i>
+                            <span id="btnJSON">EXPORTAR JSON</span>
+                        </button>
+                        <button id="resetBtn" class="btn-toolbar-item" onclick="if(typeof resetSystem==='function') resetSystem();">
+                            <i class="fas fa-redo-alt"></i>
+                            <span id="btnReset">REINICIAR</span>
+                        </button>
+                        <button id="clearConsoleBtn" class="btn-toolbar-item" onclick="(function(){var el=document.getElementById('consoleOutput');if(el)el.innerHTML='<div class=\'log-entry log-system\'>[SISTEMA] Consola limpa.</div>';})();">
+                            <i class="fas fa-trash-alt"></i>
+                            <span id="clearConsoleBtnText">LIMPAR CONSOLE</span>
+                        </button>
+                        <button id="exportRelatorioBtn" class="btn-toolbar-item" onclick="if(typeof exportPDF==='function') exportPDF(); else if(window.Swal) Swal.fire({title:'Em desenvolvimento',icon:'info'});">
+                            <i class="fas fa-file-contract"></i>
+                            <span>RELATÓRIO PERICIAL FORENSE</span>
+                            <small style="display:block;font-size:0.58rem;opacity:0.7;margin-top:2px;">MOD. 03-B</small>
+                        </button>
+                        <button id="exportMinutaBtn" class="btn-toolbar-item" onclick="if(typeof window.exportDOCX==='function') window.exportDOCX(); else if(window.Swal) Swal.fire({title:'Módulo DOCX não disponível',icon:'warning'});">
+                            <i class="fas fa-file-word"></i>
+                            <span id="btnDOCX">MINUTA DE PETIÇÃO INICIAL</span>
+                        </button>
+                        <button id="exportProvaBtn" class="btn-toolbar-item" onclick="if(typeof gerarAnexoCustodia==='function') gerarAnexoCustodia(); else if(typeof window.openCustodyChainModal==='function') window.openCustodyChainModal();">
+                            <i class="fas fa-shield-alt"></i>
+                            <span>PROVA MATERIAL DIGITAL</span>
+                        </button>
+                        <!-- Botões ocultos da tríade (revelados após perícia via RET-11) -->
+                        <div id="secondary-toolbar" style="display:none;"></div>
+                        <!-- Linha legada para compatibilidade -->
+                        <div id="primary-toolbar" style="display:none;"></div>
+                    </div>
+                </div>
+
+                <div class="module-row">
+                    <div class="module-card full-width">
+                        <h4 id="moduleSaftTitle"><i class="fas fa-file-code"></i> MÓDULO SAF-T (EXTRAÇÃO)</h4>
+                        <div class="module-values grid-3">
+                            <div class="kpi-card highlight">
+                                <h4 id="saftIliquidoLabel">Valor Ilíquido Total</h4>
+                                <p id="saftIliquidoValue">0,00 €</p>
+                                <span class="file-source-badge" id="saftIliquidoSource" data-original-file=""></span>
+                            </div>
+                            <div class="kpi-card highlight">
+                                <h4 id="saftIvaLabel">Total IVA</h4>
+                                <p id="saftIvaValue">0,00 €</p>
+                                <span class="file-source-badge" id="saftIvaSource" data-original-file=""></span>
+                            </div>
+                            <div class="kpi-card highlight">
+                                <h4 id="saftBrutoLabel">Valor Bruto Total</h4>
+                                <p id="saftBrutoValue">0,00 €</p>
+                                <span class="file-source-badge" id="saftBrutoSource" data-original-file=""></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="module-row">
+                    <div class="module-card full-width">
+                        <h4 id="moduleStatementTitle"><i class="fas fa-file-contract"></i> MÓDULO EXTRATOS (MAPEAMENTO)</h4>
+                        <div class="module-values grid-3">
+                            <div class="kpi-card highlight">
+                                <h4 id="stmtGanhosLabel">Ganhos</h4>
+                                <p id="stmtGanhosValue">0,00 €</p>
+                                <span class="file-source-badge" id="stmtGanhosSource" data-original-file=""></span>
+                            </div>
+                            <div class="kpi-card">
+                                <h4 id="stmtDespesasLabel">Despesas/Comissões</h4>
+                                <p id="stmtDespesasValue">0,00 €</p>
+                                <span class="file-source-badge" id="stmtDespesasSource" data-original-file=""></span>
+                            </div>
+                            <div class="kpi-card">
+                                <h4 id="stmtGanhosLiquidosLabel">Ganhos Líquidos</h4>
+                                <p id="stmtGanhosLiquidosValue">0,00 €</p>
+                                <span class="file-source-badge" id="stmtGanhosLiquidosSource" data-original-file=""></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="module-row">
+                    <div class="module-card full-width">
+                        <h4 id="moduleDac7Title"><i class="fas fa-envelope-open-text"></i> MÓDULO DAC7 (DECOMPOSIÇÃO)</h4>
+                        <div class="module-values grid-4">
+                            <div class="kpi-card">
+                                <h4 id="dac7Q1Label">1.º TRI</h4>
+                                <p id="dac7Q1Value">0,00 €</p>
+                                <span class="file-source-badge" id="dac7Q1Source" data-original-file=""></span>
+                            </div>
+                            <div class="kpi-card">
+                                <h4 id="dac7Q2Label">2.º TRI</h4>
+                                <p id="dac7Q2Value">0,00 €</p>
+                                <span class="file-source-badge" id="dac7Q2Source" data-original-file=""></span>
+                            </div>
+                            <div class="kpi-card">
+                                <h4 id="dac7Q3Label">3.º TRI</h4>
+                                <p id="dac7Q3Value">0,00 €</p>
+                                <span class="file-source-badge" id="dac7Q3Source" data-original-file=""></span>
+                            </div>
+                            <div class="kpi-card">
+                                <h4 id="dac7Q4Label">4.º TRI</h4>
+                                <p id="dac7Q4Value">0,00 €</p>
+                                <span class="file-source-badge" id="dac7Q4Source" data-original-file=""></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-fixed" id="twoAxisAlerts" style="display:flex;flex-wrap:wrap;gap:1rem;">
+                    <div class="stat-card warning" id="revenueGapCard" style="display: none;">
+                        <h4><i class="fas fa-chart-line"></i> <span id="revenueGapTitle">OMISSÃO DE FATURAMENTO</span></h4>
+                        <p id="revenueGapValue">0,00 €</p>
+                        <span class="stat-desc" id="revenueGapDesc">SAF-T Bruto vs Ganhos</span>
+                    </div>
+                    <div class="stat-card alert" id="expenseGapCard" style="display: none;">
+                        <h4><i class="fas fa-percentage"></i> <span id="expenseGapTitle">OMISSÃO DE CUSTOS/IVA</span></h4>
+                        <p id="expenseGapValue">0,00 €</p>
+                        <span class="stat-desc" id="expenseGapDesc">Despesas/Comissões (Extrato) vs Faturadas (BTF)</span>
+                    </div>
+                    <div class="stat-card alert" id="omissaoDespesasPctCard" style="display: none;">
+                        <h4><i class="fas fa-percent"></i> <span id="omissaoDespesasPctTitle">Percentagem Cobrada Pela Plataforma</span></h4>
+                        <p id="omissaoDespesasPctValue">0,00 %</p>
+                        <span class="stat-desc" id="omissaoDespesasPctDesc">(Despesas/Comissões / Ganhos Extrato) × 100</span>
+                    </div>
+                </div>
+
+                <div id="quantumBox" class="quantum-box" style="display: none;">
+                    <h4 id="quantumTitle"><i class="fas fa-balance-scale"></i> CÁLCULO TRIBUTÁRIO PERICIAL · PROVA RAINHA</h4>
+                    <div id="quantumValue" class="quantum-value">0,00 €</div>
+                    <p id="quantumFormula" class="quantum-formula">Diferencial de Base em Análise vs Faturada</p>
+                    <p id="quantumNote" class="quantum-formula">IVA em falta (23%): 0,00 € | IVA (6%): 0,00 €</p>
+                    <div id="quantumBreakdown" class="quantum-breakdown"></div>
+                </div>
+
+                <div id="verdictDisplay" class="verdict-display">
+                    <p class="verdict-title" id="verdictPercentLabel">PARECER TÉCNICO N.º <span id="verdictSessionId">--------</span></p>
+                    <p id="verdictLevel" class="verdict-level">AGUARDANDO ANÁLISE</p>
+                    <p id="verdictPercentValue" class="verdict-percent">Discrepância: <span id="verdictPercentSpan">0,00%</span></p>
+                    <div id="verdictDesc" class="verdict-desc">Execute a perícia para obter o veredicto.</div>
+                    <div id="verdictLegal" class="verdict-legal" style="margin-top: 1rem; font-size: 0.8rem; color: var(--text-secondary); border-top: 1px dashed var(--border-color); padding-top: 0.5rem;"></div>
+                </div>
+
+                <div id="bigDataAlert" class="bigdata-alert smoking-gun" style="display: none;">
+                    <i class="fas fa-radiation"></i>
+                    <div>
+                        <h4 id="alertCriticalTitle">SMOKING GUN · DIVERGÊNCIA CRÍTICA</h4>
+                        <p id="alertOmissionText">Despesas/Comissões (Extrato) vs Faturadas (Plataforma):</p>
+                        <strong id="alertDeltaValue" style="font-size: 1.2rem; color: var(--warn-primary);">0,00 €</strong>
+                        <small id="alertAccumulatedNote">Diferencial de Base em Análise</small>
+                    </div>
+                </div>
+
+                <div class="dashboard-fixed" id="dashboardAlerts" style="display:flex;flex-wrap:wrap;gap:1rem;align-items:stretch;">
+                    <div class="stat-card">
+                        <h4 id="cardNet"><i class="fas fa-coins"></i> <span data-pt="GANHOS LÍQUIDOS RECONSTRUÍDOS" data-en="RECONSTRUCTED NET VALUE">GANHOS LÍQUIDOS RECONSTRUÍDOS</span></h4>
+                        <p id="statNet">0,00 €</p>
+                        <span class="stat-desc" id="descNet" data-pt="Resultado Líquido (Extrato)" data-en="Net Result (Statement)">Resultado Líquido (Extrato)</span>
+                    </div>
+                    <div class="stat-card" id="statCommCard">
+                        <h4 id="cardComm"><i class="fas fa-percentage"></i> <span data-pt="DESPESAS/COMISSÕES DETETADAS" data-en="DETECTED COMMISSIONS">DESPESAS/COMISSÕES DETETADAS</span></h4>
+                        <p id="statComm">0,00 €</p>
+                        <span class="stat-desc" id="descComm" data-pt="Total de despesas/comissões (Extrato)" data-en="Total expenses/commissions (Statement)">Total de despesas/comissões (Extrato)</span>
+                    </div>
+                    <div class="stat-card success" id="jurosCard" style="display: none;">
+                        <h4 id="cardJuros"><i class="fas fa-chart-line"></i> <span data-pt="DISCREPÂNCIA DESPESAS/COMISSÕES" data-en="COMMISSION DISCREPANCY">DISCREPÂNCIA DESPESAS/COMISSÕES</span></h4>
+                        <p id="statJuros">0,00 €</p>
+                        <span class="stat-desc" id="descJuros" data-pt="Despesas/Comissões Extrato vs Fatura" data-en="Expenses/Commissions Statement vs Invoice">Despesas/Comissões Extrato vs Fatura</span>
+                    </div>
+                    
+                    <div class="stat-card alert" id="discrepancy5Card" style="display: none;">
+                        <h4><i class="fas fa-exclamation-triangle"></i> <span id="discrepancy5" data-pt="DISCREPÂNCIA SAF-T vs DAC7" data-en="SAF-T vs DAC7 DISCREPANCY">DISCREPÂNCIA SAF-T vs DAC7</span></h4>
+                        <p id="discrepancy5Value">0,00 €</p>
+                        <span class="stat-desc" id="descDisc5" data-pt="Valores omitidos no reporte DAC7" data-en="Values omitted in DAC7 report">Valores omitidos no reporte DAC7</span>
+                    </div>
+                    
+                    <div class="stat-card alert" id="agravamentoBrutoCard" style="display: none;">
+                        <h4><i class="fas fa-chart-line"></i> <span id="agravamentoBruto" data-pt="AGRAVAMENTO BRUTO/IRC" data-en="GROSS AGGRAVATION/CIT">AGRAVAMENTO BRUTO/IRC</span></h4>
+                        <p id="agravamentoBrutoValue">0,00 €</p>
+                        <span class="stat-desc" id="descAgrav" data-pt="Impacto no lucro tributável" data-en="Impact on taxable profit">Impacto no lucro tributável</span>
+                    </div>
+                    
+                    <div class="stat-card alert" id="ircCard" style="display: none;">
+                        <h4><i class="fas fa-percent"></i> <span id="irc" data-pt="IRC (21% + Derrama)" data-en="CIT (21% + Surtax)">IRC (21% + Derrama)</span></h4>
+                        <p id="ircValue">0,00 €</p>
+                        <span class="stat-desc" id="descIrc" data-pt="Estimativa de imposto" data-en="Tax estimate">Estimativa de imposto</span>
+                    </div>
+                    
+                    <div class="stat-card alert" id="iva6Card" style="display: none;">
+                        <h4><i class="fas fa-percent"></i> <span id="iva6" data-pt="IVA 6% OMITIDO" data-en="VAT 6% OMITTED">IVA 6% OMITIDO</span></h4>
+                        <p id="iva6Value">0,00 €</p>
+                        <span class="stat-desc" id="descIva6" data-pt="Valor não pago pelo sujeito passivo" data-en="Amount unpaid by the taxpayer">Valor não pago pelo sujeito passivo</span>
+                    </div>
+                    
+                    <div class="stat-card alert" id="iva23Card" style="display: none;">
+                        <h4><i class="fas fa-percent"></i> <span id="iva23" data-pt="IVA 23% OMITIDO" data-en="VAT 23% OMITTED">IVA 23% OMITIDO</span></h4>
+                        <p id="iva23Value">0,00 €</p>
+                        <span class="stat-desc" id="descIva23" data-pt="Valor não pago pelo sujeito passivo" data-en="Amount unpaid by the taxpayer">Valor não pago pelo sujeito passivo</span>
+                    </div>
+
+                    <div class="stat-card warning" id="asfixiaFinanceiraCard" style="display: none;">
+                        <h4><i class="fas fa-percent"></i> <span id="asfixiaFinanceiraTitle" data-pt="ASFIXIA FINANCEIRA (IVA 6% SOBRE BRUTO)" data-en="FINANCIAL SUFFOCATION (6% VAT ON GROSS)">ASFIXIA FINANCEIRA (IVA 6% SOBRE BRUTO)</span></h4>
+                        <p id="asfixiaFinanceiraValue">0,00 €</p>
+                        <span class="stat-desc" id="asfixiaFinanceiraDesc" data-pt="Art. 405.º C. Civil · Verba 2.18 CIVA" data-en="Art. 405 CC · Item 2.18 CIVA">Art. 405.º C. Civil · Verba 2.18 CIVA</span>
+                    </div>
+                </div>
+
+                <div class="kpi-section">
+                    <h3 id="kpiTitle"><i class="fas fa-project-diagram"></i> TRIANGULAÇÃO FINANCEIRA · BIG DATA ALGORITHM v13.12.2-i18n</h3>
+                    <div class="kpi-grid">
+                        <div class="kpi-card highlight">
+                            <h4 id="kpiGross">GANHOS (EXTRATO)</h4>
+                            <p id="kpiGrossValue">0,00 €</p>
+                        </div>
+                        <div class="kpi-card" id="kpiCommCard">
+                            <h4 id="kpiCommText">DESPESAS/COMISSÕES</h4>
+                            <p id="kpiCommValue">0,00 €</p>
+                        </div>
+                        <div class="kpi-card">
+                            <h4 id="kpiNetText">LÍQUIDO (EXTRATO)</h4>
+                            <p id="kpiNetValue">0,00 €</p>
+                        </div>
+                        <div class="kpi-card danger" id="kpiInvCard">
+                            <h4 id="kpiInvText">FATURADO</h4>
+                            <p id="kpiInvValue">0,00 €</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION: GRÁFICOS PRINCIPAIS COM IDs E OCULTAÇÃO INICIAL -->
+                <div id="mainChartContainer" class="chart-section" style="display: none;">
+                    <h3 id="chartTitle"><i class="fas fa-chart-line"></i> ANÁLISE DE DISCREPÂNCIAS · GAP FORENSE</h3>
+                    <div class="chart-container">
+                        <canvas id="mainChart"></canvas>
+                    </div>
+                </div>
+
+                <div id="mainDiscrepancyChartContainer" class="chart-section" style="display: none;">
+                    <h3 id="chartTitle2"><i class="fas fa-chart-bar"></i> DISCREPÂNCIA SAF-T vs DAC7</h3>
+                    <div class="chart-container">
+                        <canvas id="discrepancyChart"></canvas>
+                    </div>
+                </div>
+
+                <div id="pureDashboardWrapper" style="display:block; opacity:0; transition: opacity 0.2s ease;">
+                    </div>
+
+                <div class="console-section">
+                    <div class="console-header">
+                        <h3 id="consoleTitle"><i class="fas fa-terminal"></i> LOG DE CUSTÓDIA · CADEIA DE CUSTÓDIA · BIG DATA</h3>
+                    </div>
+                    <div id="consoleOutput" class="console-output"></div>
+                </div>
+
+                <footer class="action-footer">
+                    <div class="system-info">
+                        <div class="master-hash">
+                            <strong id="footerHashTitle">INTEGRIDADE DO SISTEMA (MASTER HASH SHA-256 · RFC 3161)</strong>
+                            <span id="masterHashValue">A aguardar dados...</span>
+                        </div>
+                        <div id="qrcodeContainer" style="margin-top: 10px; display: flex; justify-content: center;"></div>
+                        <p class="copyright">UNIFED - PROBATUM © 2024/2026 | EM | Módulo de Peritagem Forense v13.12.2-i18n | DORA COMPLIANT | COURT READY | DIAMOND | SMOKING GUN</p>
+                        <span id="pageCount" style="display: none;"></span>
+
+                        <div style="margin-top: 0.8rem; display: flex; justify-content: center;">
+                            <button id="custodyChainTriggerBtn" onclick="openCustodyChainModal()" title="Visualizar Cadeia de Custódia Forense">
+                                <i class="fas fa-link"></i> <span id="btnCustody">CADEIA DE CUSTÓDIA</span>
+                            </button>
+                        </div>
+                    </div>
+                </footer>
+
+            </main>
+        </div>
+    </div>
+
+    <div id="evidenceModal" class="modal-overlay">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>🔒 VERIFICAÇÃO DE INTEGRIDADE — CADEIA DE CUSTÓDIA</h2>
-                <button id="closeHashBtn" class="modal-close">&times;</button>
+                <h3><i class="fas fa-folder-plus"></i> <span id="modalTitle">GESTÃO DE EVIDÊNCIAS DIGITAIS</span></h3>
+                <button id="closeModalBtn" class="icon-btn">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
             <div class="modal-body">
-                <h3>Master Hash SHA-256</h3>
-                <div id="masterHashFull" class="hash-display">
+                <div class="upload-section-modal">
+                    <div id="globalDropZone" class="upload-group-modal" style="border: 2px dashed var(--accent-primary); background: rgba(0, 229, 255, 0.05);">
+                        <label for="globalFileInput" style="color: var(--accent-primary); font-size: 1rem;"><i class="fas fa-cloud-upload-alt"></i> ÁREA DE CARREGAMENTO RÁPIDO BIG DATA</label>
+                        <p style="color: var(--text-secondary); margin: 0.5rem 0; font-size: 0.9rem;">Arraste e solte todos os ficheiros aqui (o sistema classifica automaticamente)</p>
+                        <button id="globalUploadBtn" class="upload-btn" style="background: var(--accent-primary); color: #000;">
+                            <i class="fas fa-folder-open"></i> SELECIONAR MÚLTIPLOS FICHEIROS
+                        </button>
+                        <input type="file" id="globalFileInput" class="file-input-modal" accept=".csv,.pdf,.txt,.xml,.json" multiple>
+                    </div>
                 </div>
-                <h3>Eventos de Custódia</h3>
-                <div id="evidenceHashList" class="evidence-list">
-                </div>
-                <h3>QR Code de Verificação</h3>
-                <div id="qrCodeContainer" class="qr-container">
-                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="closeAndSaveBtn" class="btn-primary">
+                    <i class="fas fa-check-circle"></i> <span id="modalSaveBtn">SELAR EVIDÊNCIAS</span>
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- ================================================================ -->
-    <!-- SCRIPTS — ORDEM DE CARREGAMENTO CONSOLIDADA (FULL BUILD)          -->
-    <!-- Sem ficheiros de patch paralelos — sistema monolítico certificado  -->
-    <!-- ================================================================ -->
+  <div id="logsModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="logsModalTitle"><i class="fas fa-history"></i> REGISTO DE ATIVIDADES DE TRATAMENTO</h3>
+            <button id="closeLogsModalBtn" class="icon-btn"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <div id="logsDisplayArea" class="console-output" style="height: 300px; overflow-y: auto;"></div>
+        </div>
+        <div class="modal-footer">
+            <button id="exportLogsBtn" class="btn-primary"><i class="fas fa-download"></i> <span id="exportLogsBtnText">EXPORTAR LOGS</span></button>
+            <button id="clearLogsBtn" class="btn-wipe"><i class="fas fa-trash"></i> <span id="clearLogsBtnText">LIMPAR LOGS</span></button>
+            <button id="closeLogsBtn" class="btn-primary"><span id="closeLogsBtnText">FECHAR</span></button>
+        </div>
+    </div>
+</div>
 
-    <!-- PASSO 1: ACTIVADOR DE PAINEL (pré-requisito absoluto) -->
+    <div id="hashVerificationModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3 id="hashModalTitle"><i class="fas fa-link"></i> VERIFICAÇÃO DE INTEGRIDADE · CADEIA DE CUSTÓDIA</h3>
+                <button id="closeHashModalBtn" class="icon-btn"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 15px;">
+                    <strong style="color: var(--accent-primary); font-size: 0.8rem;">MASTER HASH SHA-256 DA SESSÃO:</strong>
+                    <div id="masterHashFull" style="word-break: break-all; font-family: var(--font-mono); font-size: 0.75rem; background: rgba(0,0,0,0.3); padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; margin-top: 5px; color: var(--success-primary);"></div>
+                </div>
+                <strong style="color: var(--text-secondary); font-size: 0.8rem;">EVIDÊNCIAS PROCESSADAS:</strong>
+                <div id="evidenceHashList" style="margin-top: 10px; max-height: 250px; overflow-y: auto; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 4px; border: 1px solid var(--border-color);"></div>
+            </div>
+            <div class="modal-footer">
+                <button id="closeHashBtn" class="btn-primary"><span id="closeHashBtnText">VALIDAR E FECHAR</span></button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toastContainer"></div>
+
+    <!-- MODAL: CADEIA DE CUSTÓDIA FORENSE -->
+    <div id="custodyModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="custodyModalTitle">
+        <div class="custody-modal-box">
+            <div class="custody-modal-header">
+                <div class="custody-modal-title">
+                    <i class="fas fa-link"></i>
+                    <span id="custodyModalTitle">CADEIA DE CUSTÓDIA FORENSE · ISO/IEC 27037:2012</span>
+                    <span class="pure-badge-version" style="margin-left:0.5rem;">v13.12.2-i18n</span>
+                </div>
+                <button class="custody-close-btn" onclick="if(typeof closeCustodyChainModal==='function') closeCustodyChainModal();" aria-label="Fechar">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="custody-modal-meta">
+                <span>Sessão: <strong id="custodySessionId">---</strong></span>
+                <span>Entradas: <strong id="custodyEntryCount">0</strong></span>
+                <span>Hash: <strong id="custodyHashDisplay" style="font-family:monospace;font-size:0.8em;">---</strong></span>
+            </div>
+            <div id="custodyLogContainer" class="custody-log-list">
+                <div class="custody-empty-state">
+                    <i class="fas fa-inbox"></i>
+                    Sem eventos registados. Carregue evidências para iniciar a cadeia de custódia.
+                </div>
+            </div>
+            <div class="modal-footer" style="padding:1rem 1.5rem;border-top:1px solid rgba(255,255,255,0.08);display:flex;gap:0.75rem;justify-content:flex-end;">
+                <button class="btn-primary" onclick="if(typeof closeCustodyChainModal==='function') closeCustodyChainModal();">
+                    <i class="fas fa-check-circle"></i> FECHAR
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ordem corrigida: script.js antes de script_injection.js e unifed_triada_export.js -->
     <script src="unifed_panel_activator.js"></script>
-
-    <!-- PASSO 2: FIXES COMPREENSIVOS (VUL-001 a VUL-007) -->
-    <script src="unifed_fixes_comprehensive.js"></script>
-
-    <!-- PASSO 3: SCRIPT PRINCIPAL CONSOLIDADO (VEC-01 a VEC-05 integrados) -->
-    <script src="script.js"></script>
-
-    <!-- PASSO 4: INJECÇÃO ADICIONAL (VEC-04 integrado — renderForensicCharts sincronizado) -->
-    <script src="script_injection.js"></script>
-
-    <!-- PASSO 5: ENRIQUECIMENTO CONSOLIDADO (VEC-01+02 integrados — renderDiscrepancyCharts) -->
+    <script src="script.js"></script>                <!-- DEFINIR generateForensicHash, UNIFEDSystem -->
+    <script src="script_injection.js"></script>     <!-- depende das funções acima -->
     <script src="enrichment.js"></script>
-
-    <!-- PASSO 6: NEXUS (integração de dados) -->
     <script src="nexus.js"></script>
-
-    <!-- PASSO 7: CARD AMT-01 (análise de compliance regulatório) -->
-    <script src="unifed_card_amt01.js"></script>
-
-    <!-- PASSO 8: LOCALIZAÇÃO (PT/EN com símbolos monetários — ISO 4217) -->
-    <script src="unifed_localization_fix.js"></script>
-
-    <!-- PASSO 9: BOTÕES TOOLBAR (funcionalidade completa) -->
-    <script src="unifed_toolbar_buttons.js"></script>
-
-    <!-- PASSO 10: EXPORTAÇÃO (tríade documental final) -->
     <script src="unifed_triada_export.js"></script>
-
-    <!-- ================================================================ -->
-    <!-- VERIFICAÇÃO PÓS-CARREGAMENTO DO FULL BUILD                        -->
-    <!-- ================================================================ -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('════════════════════════════════════════════════════════════════');
-            console.log('✅ UNIFED-PROBATUM v13.12.2-i18n · FULL BUILD 2026-04-18');
-            console.log('════════════════════════════════════════════════════════════════');
-            console.log('VEC-01: Chart.js Singleton (Chart.getChart destruição segura) .. ✓');
-            console.log('VEC-02: Canvas ID Reconciliation (#discrepancyChart alias) ...... ✓');
-            console.log('VEC-03: OTS CDN Fail-Safe (Custódia Nível 2 inline) ............. ✓');
-            console.log('VEC-04: _fillAnalysisStatCards → rAF → renderCharts sync ....... ✓');
-            console.log('VEC-05: resetUIVisual Zero-Knowledge (Chart.getChart purge) ..... ✓');
-            console.log('════════════════════════════════════════════════════════════════');
-            console.log('Master Hash SHA-256 (Full Build Lote):');
-            console.log('3a7f92c1d8e04b5a6f1c3d9e2b8a7f4c5d6e1b9a3c7f2d8e0b4a6f1c3d9e2b8');
-            console.log('════════════════════════════════════════════════════════════════');
-
-            // Verificar flags de módulos
-            var flags = ['phase2_harmonized','phase2_amt01','phase2_localization','phase2_toolbar'];
-            flags.forEach(function(flag) {
-                if (window[flag] === true) {
-                    console.log('✓ ' + flag + ' = true');
-                } else {
-                    console.warn('⚠ ' + flag + ' não detectado');
-                }
-            });
-
-            // OTS status
-            if (window._OTS_FALLBACK_ACTIVE) {
-                console.info('ℹ OTS: Custódia Nível 2 activa (Selo Local SHA-256)');
-            } else if (window.OpenTimestamps && !window.OpenTimestamps._STUB) {
-                console.log('✓ OTS: Custódia Nível 1 activa (OpenTimestamps)');
-            }
-        });
-    </script>
 </body>
 </html>

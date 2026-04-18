@@ -687,15 +687,33 @@ function showBlockchainExplain(hash) {
 
 function openCustodyChainModal() {
     const modal = document.getElementById('custodyModal');
-    if (!modal) return;
-    const sessionEl = document.getElementById('custodySessionId');
-    if (sessionEl && typeof UNIFEDSystem !== 'undefined' && UNIFEDSystem.sessionId) {
-        sessionEl.textContent = UNIFEDSystem.sessionId;
+    if (!modal) {
+        console.warn('[UNIFED] #custodyModal não encontrado no DOM.');
+        return;
     }
-    renderCustodyLog(ForensicLogger.getLogs());
+    const sys = (typeof UNIFEDSystem !== 'undefined') ? UNIFEDSystem : window.UNIFEDSystem;
+    const sessionEl = document.getElementById('custodySessionId');
+    if (sessionEl && sys && sys.sessionId) sessionEl.textContent = sys.sessionId;
+
+    const hashEl = document.getElementById('custodyHashDisplay');
+    if (hashEl && sys && sys.masterHash) {
+        hashEl.textContent = sys.masterHash.substring(0, 20).toUpperCase() + '...';
+    }
+
+    // Também atualizar masterHashFull no modal de hash (compatibilidade)
+    const masterHashFull = document.getElementById('masterHashFull');
+    if (masterHashFull && sys && sys.masterHash) {
+        masterHashFull.textContent = sys.masterHash;
+    }
+
+    if (typeof renderCustodyLog === 'function') {
+        renderCustodyLog(ForensicLogger.getLogs ? ForensicLogger.getLogs() : []);
+    }
     modal.classList.add('active');
     document.body.style.overflow = 'hidden';
 }
+
+window.openCustodyChainModal = openCustodyChainModal;
 
 function closeCustodyChainModal() {
     const modal = document.getElementById('custodyModal');
@@ -2134,9 +2152,11 @@ function switchLanguage() {
 
     const langBtn = document.getElementById('langToggleBtn');
     if (langBtn) {
-        const span = langBtn.querySelector('span');
-        if (span) span.textContent = t.langBtn;
+        const span = langBtn.querySelector('span') || langBtn.querySelector('#currentLangLabel');
+        if (span) span.textContent = currentLang === 'en' ? 'PT' : 'EN';
     }
+    const currentLangLabel = document.getElementById('currentLangLabel');
+    if (currentLangLabel) currentLangLabel.textContent = currentLang === 'en' ? 'PT' : 'EN';
 
     const startBtn = document.getElementById('startSessionBtn');
     if (startBtn) {
@@ -2489,9 +2509,10 @@ function switchLanguage() {
     const closeHashBtnText = document.getElementById('closeHashBtnText');
     if (closeHashBtnText) closeHashBtnText.textContent = t.closeHashBtnText;
 
-    if (UNIFEDSystem.analysis.totals) {
-        updateDashboard();
-        updateModulesUI();
+    // FIX-LANG: só chamar updateDashboard se a análise já foi executada (crossings existem)
+    if (UNIFEDSystem.analysis && UNIFEDSystem.analysis.totals && UNIFEDSystem.analysis.crossings) {
+        try { updateDashboard(); } catch(_e) { console.warn('[UNIFED-LANG] updateDashboard ignorado:', _e.message); }
+        try { updateModulesUI(); } catch(_e) { console.warn('[UNIFED-LANG] updateModulesUI ignorado:', _e.message); }
     }
 
     startClockAndDate();
@@ -3183,62 +3204,42 @@ function openHashModal() {
 // SUBSTITUIÇÃO DA FUNÇÃO resetUIVisual (versão melhorada com limpeza de storage)
 // ============================================================================
 window.resetUIVisual = function() {
-    // [VEC-05] Purga Total de Memória Zero-Knowledge — Full Build 2026-04-18
-    console.warn('[FORENSIC-CORE] Purga Total de Memória Zero-Knowledge iniciada.');
-
-    // 1. Destruir instâncias Chart.js (Chart.getChart() como mecanismo primário)
-    ['mainChart','discrepancyChart','mainDiscrepancyChart','atfChartCanvas','atfChartCanvasModal'].forEach(function(id) {
-        var cvs = document.getElementById(id);
-        if (cvs && typeof Chart !== 'undefined') {
-            try { var inst = Chart.getChart(cvs); if (inst) { inst.destroy(); } } catch(_) {}
-        }
-        if (cvs) { try { cvs.getContext('2d').clearRect(0,0,cvs.width,cvs.height); } catch(_) {} }
-    });
-    if (UNIFEDSystem.chart)            { try { UNIFEDSystem.chart.destroy(); }            catch(_) {} UNIFEDSystem.chart = null; }
-    if (UNIFEDSystem.discrepancyChart) { try { UNIFEDSystem.discrepancyChart.destroy(); } catch(_) {} UNIFEDSystem.discrepancyChart = null; }
-    if (window.atfChartInstance)       { try { window.atfChartInstance.destroy(); }        catch(_) {} window.atfChartInstance = null; }
-
-    // 2. Storage
+    console.warn('[FORENSIC-CORE] Invocando Purga Total de Memória (Zero-Knowledge).');
     try { localStorage.clear(); sessionStorage.clear(); } catch(e) { console.warn('Storage clear failed', e); }
-
-    // 3. Reset UNIFEDSystem
+    
     if (window.UNIFEDSystem) {
-        UNIFEDSystem.analysis  = { totals: {}, crossings: {}, verdict: null, evidenceIntegrity: [] };
-        UNIFEDSystem.documents = {
-            control:    { files: [], totals: { records: 0 } },
-            saft:       { files: [], totals: { bruto:0, iliquido:0, iva:0, records:0 } },
-            invoices:   { files: [], totals: { invoiceValue:0, records:0 } },
+        window.UNIFEDSystem.analysis = { totals: {}, crossings: {}, verdict: null, evidenceIntegrity: [] };
+        window.UNIFEDSystem.documents = {
+            control: { files: [], totals: { records: 0 } },
+            saft: { files: [], totals: { bruto:0, iliquido:0, iva:0, records:0 } },
+            invoices: { files: [], totals: { invoiceValue:0, records:0 } },
             statements: { files: [], totals: { ganhos:0, despesas:0, ganhosLiquidos:0, records:0 } },
-            dac7:       { files: [], totals: { q1:0,q2:0,q3:0,q4:0,totalPeriodo:0,records:0 } }
+            dac7: { files: [], totals: { q1:0, q2:0, q3:0, q4:0, totalPeriodo:0, records:0 } }
         };
-        UNIFEDSystem.monthlyData = {}; UNIFEDSystem.dataMonths = new Set(); UNIFEDSystem.masterHash = '';
+        window.UNIFEDSystem.monthlyData = {};
+        window.UNIFEDSystem.dataMonths = new Set();
+        window.UNIFEDSystem.masterHash = '';
     }
     window.rawForensicData = null;
-    if (!window._unifedDataLoaded) { window._unifedAnalysisPending = false; window._unifedRawDataOnly = false; }
-
-    // 4. Ocultar contentores de gráfico
-    ['mainChartContainer','mainDiscrepancyChartContainer','pure-chart-container'].forEach(function(id) {
-        var el = document.getElementById(id);
-        if (el) { el.style.display = 'none'; el.style.opacity = '0'; }
-    });
-
-    // 5. Limpar elementos de dados
-    document.querySelectorAll('.pure-data-value, .pure-sg-val, .pure-zc-val, .pure-delta-value, .pure-atf-big')
-        .forEach(function(el) { el.classList.remove('forensic-revealed'); el.style.opacity = '0'; el.textContent = '---'; });
-    document.querySelectorAll('[id*="count"]').forEach(function(el) { el.textContent = '0'; });
-
-    // 6. Ocultar módulos de alerta
-    ['#bigDataAlert','#quantumBox','#revenueGapCard','#expenseGapCard','#omissaoDespesasPctCard',
-     '#jurosCard','#discrepancy5Card','#agravamentoBrutoCard','#ircCard','#iva6Card','#iva23Card','#asfixiaFinanceiraCard']
-        .forEach(function(sel) { var el = document.querySelector(sel); if (el) el.style.display = 'none'; });
-
-    // 7. Hidratar valores brutos se caso real carregado
+    // Se o caso real já estiver carregado, não resetar as flags para zero-knowledge
+    if (!window._unifedDataLoaded) {
+        window._unifedAnalysisPending = false;
+        window._unifedRawDataOnly = false;
+    }
+    
+    const elementsToHide = document.querySelectorAll('.pure-data-value, .pure-sg-val, .pure-zc-val, .pure-delta-value, .pure-atf-big');
+    elementsToHide.forEach(el => { el.classList.remove('forensic-revealed'); el.style.opacity = '0'; el.textContent = '---'; });
+    document.querySelectorAll('[id*="count"]').forEach(el => el.textContent = '0');
+    
+    const alertModules = ['#bigDataAlert', '#quantumBox', '#revenueGapCard', '#expenseGapCard', '#omissaoDespesasPctCard', '#jurosCard', '#discrepancy5Card', '#agravamentoBrutoCard', '#ircCard', '#iva6Card', '#iva23Card', '#asfixiaFinanceiraCard'];
+    alertModules.forEach(sel => { const el = document.querySelector(sel); if (el) el.style.display = 'none'; });
+    
+    // Se o caso real estiver carregado, reaplicar os valores absolutos
     if (window._unifedDataLoaded && typeof window._hydrateRawDataValues === 'function') {
         window._hydrateRawDataValues();
     }
-
-    window.logAudit('Zero-Knowledge: purga total de memória executada com sucesso.', 'success');
-    console.warn('[FORENSIC-CORE] ✓ resetUIVisual Zero-Knowledge concluído.');
+    
+    window.logAudit('Sistema em estado Zero-Knowledge. Pronto para reunião.', 'success');
 };
 
 // ============================================================================
@@ -3408,35 +3409,35 @@ async function resetSystem() {
     resetUIVisual();
 
     setTimeout(() => {
-        if (typeof window._restoreOriginalToolbar === 'function') {
-            window._restoreOriginalToolbar();
-            logAudit("Toolbar original restaurada após reset.", "success");
-        } else {
-            const container = document.getElementById('export-tools-container');
-            if (container) {
-                container.innerHTML = '';
-                const translations = window.translations?.[currentLang] || {};
-                const tools = [
-                    { id: 'exportPDFBtn', icon: 'fa-file-pdf', label: translations.btnPDF || 'PARECER TÉCNICO', handler: () => window.exportPDF && window.exportPDF() },
-                    { id: 'exportDOCXBtn', icon: 'fa-file-word', label: translations.btnDOCX || 'MINUTA WORD', handler: () => window.exportDOCX && window.exportDOCX() },
-                    { id: 'atfModalBtn', icon: 'fa-chart-line', label: translations.btnATF || '⏳ TENDÊNCIA ATF', handler: () => window.openATFModal && window.openATFModal() },
-                    { id: 'exportJSONBtn', icon: 'fa-file-code', label: translations.btnJSON || 'EXPORTAR JSON', handler: () => window.exportDataJSON && window.exportDataJSON() },
-                    { id: 'resetBtn', icon: 'fa-redo-alt', label: translations.btnReset || 'REINICIAR', handler: () => window.resetSystem && window.resetSystem() },
-                    { id: 'clearConsoleBtn', icon: 'fa-trash-alt', label: translations.clearConsoleBtnText || 'LIMPAR CONSOLE', handler: () => window.clearConsole && window.clearConsole() }
-                ];
-                tools.forEach(t => {
-                    const btn = document.createElement('button');
-                    btn.id = t.id;
-                    btn.className = 'btn-tool';
-                    btn.innerHTML = `<i class="fas ${t.icon}"></i> <span>${t.label}</span>`;
-                    btn.onclick = t.handler;
-                    container.appendChild(btn);
-                });
+        // FIX-RESET: Não destruir a toolbar HTML — apenas reativar os botões e os seus handlers
+        // A toolbar agora usa onclick direto no HTML (toolbar-unified), portanto não precisa de reconstrução
+        const _btnMap = {
+            'exportPDFBtn':      () => typeof exportPDF === 'function' && exportPDF(),
+            'exportJSONBtn':     () => typeof exportDataJSON === 'function' && exportDataJSON(),
+            'resetBtn':          () => typeof resetSystem === 'function' && resetSystem(),
+            'clearConsoleBtn':   () => { const el = document.getElementById('consoleOutput'); if (el) el.innerHTML = '<div class="log-entry log-system">[SISTEMA] Consola limpa.</div>'; },
+            'exportRelatorioBtn':() => typeof exportPDF === 'function' && exportPDF(),
+            'exportMinutaBtn':   () => typeof window.exportDOCX === 'function' && window.exportDOCX(),
+            'exportProvaBtn':    () => typeof window.openCustodyChainModal === 'function' && window.openCustodyChainModal(),
+            'atfModalBtn':       () => typeof window.openATFModal === 'function' && window.openATFModal(),
+        };
+        Object.entries(_btnMap).forEach(([id, handler]) => {
+            const btn = document.getElementById(id);
+            if (btn) {
+                btn.disabled = false;
+                btn.style.pointerEvents = 'auto';
+                btn.style.opacity = '1';
+                if (!btn.onclick) btn.onclick = handler;
             }
-        }
+        });
+        // Ocultar botões da tríade (voltam ao estado inicial)
+        document.querySelectorAll('[data-triada-btn="true"]').forEach(btn => {
+            btn.style.display = 'none';
+        });
         if (typeof window._activatePurePanel === 'function') {
             window._activatePurePanel(true);
         }
+        logAudit('Toolbar reativada após reset.', 'success');
     }, 150);
 
     window.dispatchEvent(new CustomEvent('UNIFED_CORE_READY', { detail: { reset: true } }));
@@ -5112,9 +5113,11 @@ function showTwoAxisAlerts() {
 let _nifafAlertedHash = null;
 
 function updateDashboard() {
+    // FIX-LANG: Guardar se a análise ainda não foi executada
+    if (!UNIFEDSystem.analysis || !UNIFEDSystem.analysis.totals) return;
     const totals = UNIFEDSystem.analysis.totals;
-    const cross = UNIFEDSystem.analysis.crossings;
-    const twoAxis = UNIFEDSystem.analysis.twoAxis;
+    const cross = UNIFEDSystem.analysis.crossings || {};
+    const twoAxis = UNIFEDSystem.analysis.twoAxis || { revenueGap: 0, expenseGap: 0 };
 
     const netValue = totals.ganhosLiquidos || 0;
 
@@ -5250,8 +5253,10 @@ function updateDashboard() {
 }
 
 function activateIntermittentAlerts() {
+    // FIX-LANG: Guardar se análise não foi executada ainda — sair silenciosamente
+    if (!UNIFEDSystem.analysis || !UNIFEDSystem.analysis.crossings) return;
     const cross = UNIFEDSystem.analysis.crossings;
-    const twoAxis = UNIFEDSystem.analysis.twoAxis;
+    const twoAxis = UNIFEDSystem.analysis.twoAxis || { revenueGap: 0, expenseGap: 0 };
 
     const kpiInvCard = document.getElementById('kpiInvCard');
     if (kpiInvCard) {
@@ -5433,156 +5438,149 @@ function showAlerts() {
 }
 
 function renderChart() {
-    // [VEC-01+02] Versão Singleton com Mutex e Reconciliação de Canvas ID
-    // Integrado pelo Full Build consolidado — 2026-04-18
-    'use strict';
-    if (!window.UNIFEDSystem || !window.UNIFEDSystem.analysis) {
-        console.warn('[renderChart] UNIFEDSystem.analysis não disponível.');
-        return;
+    const ctx = document.getElementById('mainChart');
+    if (!ctx) return;
+    // FIX-CANVAS: usar Chart.getChart() para evitar "Canvas already in use"
+    const _existingChart = Chart.getChart ? Chart.getChart(ctx) : null;
+    if (_existingChart) _existingChart.destroy();
+    if (UNIFEDSystem.chart) {
+        try { UNIFEDSystem.chart.destroy(); } catch(_e) {}
+        UNIFEDSystem.chart = null;
     }
-    if (typeof Chart === 'undefined') { console.error('[renderChart] Chart.js não carregado.'); return; }
 
-    const totals = UNIFEDSystem.analysis.totals  || {};
-    const t      = translations[currentLang]      || {};
-    const fmtFn  = (typeof window.formatCurrencyLocalized === 'function')
-                 ? (v) => window.formatCurrencyLocalized(v, currentLang)
-                 : (v) => formatCurrency(v);
+    const totals = UNIFEDSystem.analysis.totals;
+    const cross = UNIFEDSystem.analysis.crossings;
+    const t = translations[currentLang];
 
     const periodoTexto = {
         'anual': currentLang === 'pt' ? 'Anual' : 'Annual',
-        '1s': '1S', '2s': '2S',
+        '1s': '1S',
+        '2s': '2S',
         'trimestral': currentLang === 'pt' ? 'Trim' : 'Qtr',
         'mensal': currentLang === 'pt' ? 'Mensal' : 'Monthly'
     }[UNIFEDSystem.selectedPeriodo] || '';
 
-    // Destruição segura via Chart.getChart() — previne "Canvas in use"
-    const canvasEl = document.getElementById('mainChart');
-    if (!canvasEl) { console.warn('[renderChart] #mainChart não encontrado.'); return; }
-    try {
-        const existing = Chart.getChart(canvasEl);
-        if (existing) { existing.destroy(); }
-    } catch (_) {}
-    if (UNIFEDSystem.chart) {
-        try { UNIFEDSystem.chart.destroy(); } catch (_) {}
-        UNIFEDSystem.chart = null;
-    }
+    const labels = [
+        t.saftBruto || 'SAF-T Bruto',
+        t.stmtGanhos || 'Ganhos',
+        t.stmtDespesas || 'Despesas/Comissões',
+        t.stmtGanhosLiquidos || 'Líquido',
+        t.kpiInvText || 'Faturado',
+        `DAC7 ${periodoTexto}`
+    ];
 
-    const cont = document.getElementById('mainChartContainer');
-    if (cont) { cont.style.display = 'block'; cont.style.opacity = '1'; }
+    const data = [
+        totals.saftBruto || 0,
+        totals.ganhos || 0,
+        totals.despesas || 0,
+        totals.ganhosLiquidos || 0,
+        totals.faturaPlataforma || 0,
+        totals.dac7TotalPeriodo || 0
+    ];
 
-    UNIFEDSystem.chart = new Chart(canvasEl, {
+    const colors = ['#0ea5e9', '#10b981', '#ef4444', '#8b5cf6', '#6366f1', '#f59e0b'];
+
+    UNIFEDSystem.chart = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: [
-                t.saftBruto || 'SAF-T Bruto',
-                t.stmtGanhos || 'Ganhos',
-                t.stmtDespesas || 'Despesas/Comissões',
-                t.stmtGanhosLiquidos || 'Líquido',
-                t.kpiInvText || 'Faturado',
-                'DAC7 ' + periodoTexto
-            ],
+            labels: labels,
             datasets: [{
                 label: currentLang === 'pt' ? 'Valor' : 'Amount',
-                data: [
-                    totals.saftBruto || 0, totals.ganhos || 0, totals.despesas || 0,
-                    totals.ganhosLiquidos || 0, totals.faturaPlataforma || 0, totals.dac7TotalPeriodo || 0
-                ],
-                backgroundColor: ['#0ea5e9','#10b981','#ef4444','#8b5cf6','#6366f1','#f59e0b'],
+                data: data,
+                backgroundColor: colors,
                 borderWidth: 1
             }]
         },
         options: {
-            responsive: true, maintainAspectRatio: false,
+            responsive: true,
+            maintainAspectRatio: false,
             plugins: {
                 legend: { display: false },
-                tooltip: { callbacks: { label: (ctx) => fmtFn(ctx.raw) } }
+                tooltip: {
+                    callbacks: {
+                        label: (context) => {
+                            return formatCurrency(context.raw);
+                        }
+                    }
+                }
             },
             scales: {
-                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.1)' },
-                     ticks: { color: '#b8c6e0', callback: (v) => fmtFn(v) } },
-                x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#b8c6e0' } }
+                y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(255,255,255,0.1)' },
+                    ticks: {
+                        color: '#b8c6e0',
+                        callback: (v) => formatCurrency(v)
+                    }
+                },
+                x: {
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    ticks: { color: '#b8c6e0' }
+                }
             }
         }
     });
 }
 
 function renderDiscrepancyChart() {
-    // [VEC-01+02] Singleton + Reconciliação de Canvas ID
-    // Corrige mismatch: script.js usa #discrepancyChart; index usa #mainDiscrepancyChart
-    // Integrado pelo Full Build consolidado — 2026-04-18
-    'use strict';
-    if (!window.UNIFEDSystem || !window.UNIFEDSystem.analysis) {
-        console.warn('[renderDiscrepancyChart] UNIFEDSystem.analysis não disponível.');
-        return;
-    }
-    if (typeof Chart === 'undefined') { console.error('[renderDiscrepancyChart] Chart.js não carregado.'); return; }
+    const ctx = document.getElementById('discrepancyChart');
+    if (!ctx) return;
 
-    const cross = UNIFEDSystem.analysis.crossings || {};
-    const fmtFn = (typeof window.formatCurrencyLocalized === 'function')
-                ? (v) => window.formatCurrencyLocalized(v, currentLang)
-                : (v) => formatCurrency(v);
-
-    // Reconciliação de ID: aceitar qualquer um dos dois IDs de canvas
-    const canvasEl = document.getElementById('mainDiscrepancyChart')
-                  || document.getElementById('discrepancyChart');
-    if (!canvasEl) {
-        console.warn('[renderDiscrepancyChart] Canvas não encontrado (#mainDiscrepancyChart / #discrepancyChart).');
-        return;
-    }
-
-    const discCritica  = cross.discrepanciaCritica   || 0;
-    const discSaftDac7 = cross.discrepanciaSaftVsDac7 || 0;
-    if (discCritica === 0 && discSaftDac7 === 0) {
-        console.warn('[renderDiscrepancyChart] Dados zero — gráfico omitido.');
-        return;
-    }
-
-    // Destruição segura
-    try {
-        const existing = Chart.getChart(canvasEl);
-        if (existing) { existing.destroy(); }
-    } catch (_) {}
+    // FIX-CANVAS: Destruir instância existente via Chart.getChart() (API oficial Chart.js 3+)
+    const _existingDiscChart = Chart.getChart ? Chart.getChart(ctx) : null;
+    if (_existingDiscChart) _existingDiscChart.destroy();
     if (UNIFEDSystem.discrepancyChart) {
-        try { UNIFEDSystem.discrepancyChart.destroy(); } catch (_) {}
+        try { UNIFEDSystem.discrepancyChart.destroy(); } catch(_e) {}
         UNIFEDSystem.discrepancyChart = null;
     }
 
-    const cont = document.getElementById('mainDiscrepancyChartContainer');
-    if (cont) { cont.style.display = 'block'; cont.style.opacity = '1'; }
+    const totals = UNIFEDSystem.analysis.totals;
+    const cross = UNIFEDSystem.analysis.crossings;
+    const t = translations[currentLang];
 
-    UNIFEDSystem.discrepancyChart = new Chart(canvasEl, {
+    UNIFEDSystem.discrepancyChart = new Chart(ctx, {
         type: 'scatter',
         data: {
-            datasets: [
-                {
-                    label: currentLang === 'pt'
-                        ? 'Discrepância Despesas/Comissões vs Faturas (€ 2.184,95 | GAP: 89,26%)'
-                        : 'Expenses/Commissions vs Invoice Discrepancy (€ 2,184.95 | GAP: 89.26%)',
-                    data: [{ x: 1, y: discCritica }],
-                    backgroundColor: '#ef4444', pointRadius: 10, pointHoverRadius: 15
-                },
-                {
-                    label: currentLang === 'pt' ? 'Discrepância SAF-T vs DAC7' : 'SAF-T vs DAC7 Discrepancy',
-                    data: [{ x: 2, y: discSaftDac7 }],
-                    backgroundColor: '#f59e0b', pointRadius: 10, pointHoverRadius: 15
-                }
-            ]
+            datasets: [{
+                label: currentLang === 'pt' ? 'Discrepância Despesas/Comissões vs Faturas' : 'Expenses/Commissions vs Invoice Discrepancy',
+                data: [{ x: 1, y: cross.discrepanciaCritica }],
+                backgroundColor: '#ef4444',
+                pointRadius: 10,
+                pointHoverRadius: 15
+            }, {
+                label: currentLang === 'pt' ? 'Discrepância SAF-T vs DAC7' : 'SAF-T vs DAC7 Discrepancy',
+                data: [{ x: 2, y: cross.discrepanciaSaftVsDac7 }],
+                backgroundColor: '#f59e0b',
+                pointRadius: 10,
+                pointHoverRadius: 15
+            }]
         },
         options: {
-            responsive: true, maintainAspectRatio: false,
+            responsive: true,
+            maintainAspectRatio: false,
             plugins: {
-                legend: { display: true, labels: { color: '#b8c6e0' } },
-                tooltip: { callbacks: { label: (ctx) => ctx.dataset.label + ': ' + fmtFn(ctx.raw.y) } }
+                tooltip: {
+                    callbacks: {
+                        label: (context) => {
+                            return context.dataset.label + ': ' + formatCurrency(context.raw.y);
+                        }
+                    }
+                }
             },
             scales: {
                 x: {
                     type: 'category',
                     labels: ['', currentLang === 'pt' ? 'Despesas/Comissões' : 'Expenses/Commissions', 'SAF-T/DAC7', ''],
-                    grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#b8c6e0' }
+                    grid: { color: 'rgba(255,255,255,0.1)' },
+                    ticks: { color: '#b8c6e0' }
                 },
                 y: {
-                    beginAtZero: true, grid: { color: 'rgba(255,255,255,0.1)' },
-                    ticks: { color: '#b8c6e0', callback: (v) => fmtFn(v) }
+                    beginAtZero: true,
+                    grid: { color: 'rgba(255,255,255,0.1)' },
+                    ticks: {
+                        color: '#b8c6e0',
+                        callback: (v) => formatCurrency(v)
+                    }
                 }
             }
         }
