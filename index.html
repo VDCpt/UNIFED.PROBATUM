@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UNIFED-PROBATUM v13.12.2-i18n — Sistema de Peritagem Forense Digital</title>
+    
+    <!-- ================================================================ -->
+    <!-- CSS PRINCIPAL E COMPLEMENTAR                                   -->
+    <!-- ================================================================ -->
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style_additions.css">
+    
+    <!-- ================================================================ -->
+    <!-- BIBLIOTECAS EXTERNAS                                           -->
+    <!-- ================================================================ -->
+    <!-- Font Awesome (ícones) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+          integrity="sha512-iecdLmaskl7CVJkEZSMUkrQ6usKGgiYjwlrfcqKKcfx00MLp3YQe98bNvBCzEAKJRjL4NnHPVcKMuMrIZs7wqw=="
+          crossorigin="anonymous" referrerpolicy="no-referrer">
+    
+    <!-- Chart.js (gráficos) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"
+            integrity="sha512-d5kLQpDQdMp5+mzgP8f5RpvPV+Dak4lFa8UVf1q5BVj2I04PPlBrF/+AxAXTHjg/dHp6/3z6DxMEQu0JqYeZA=="
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    
+    <!-- OpenTimestamps (certificação de tempo) -->
+    <script async src="https://opentimestamps.org/lib/opentimestamps.js"></script>
+</head>
+<body>
+    <!-- ================================================================ -->
+    <!-- ESTRUTURA PRINCIPAL DO DASHBOARD                               -->
+    <!-- ================================================================ -->
+    
+    <!-- Header com botões de controlo -->
+    <header id="mainHeader" class="unifed-header">
+        <div class="header-left">
+            <h1>🔐 UNIFED-PROBATUM</h1>
+            <span class="version-badge">v13.12.2-i18n + FASE II+III</span>
+        </div>
+        <div class="header-right">
+            <button id="langToggleBtn" class="btn-lang-toggle" title="Alternar PT/EN">
+                <i class="fas fa-globe"></i> PT/EN
+            </button>
+            <button id="custodyChainTriggerBtn" class="btn-tool" title="Verificar cadeia de custódia">
+                <i class="fas fa-link"></i> QR CODE
+            </button>
+        </div>
+    </header>
+
+    <!-- Dashboard principal (inicialmente invisível) -->
+    <div id="pureDashboardWrapper" style="display:block; opacity:0; transition: opacity 0.3s ease;">
+        <div id="pureDashboard" class="dashboard-container">
+            
+            <!-- Secção de KPIs -->
+            <section id="kpisSection" class="kpis-grid">
+                <h2>MÉTRICAS OPERACIONAIS</h2>
+                <!-- KPIs serão injetados via JavaScript -->
+            </section>
+
+            <!-- Secção de gráficos -->
+            <section id="mainChartContainer" style="display:none; opacity:0;">
+                <h2>ANÁLISE DE FLUXOS FINANCEIROS</h2>
+                <canvas id="mainChart" height="100"></canvas>
+            </section>
+
+            <section id="mainDiscrepancyChartContainer" style="display:none; opacity:0;">
+                <h2>ANÁLISE DE DISCREPÂNCIAS · GAP FORENSE</h2>
+                <canvas id="mainDiscrepancyChart" height="100"></canvas>
+            </section>
+
+            <!-- Card AMT-01 será injetado aqui -->
+            <section id="complianceSection">
+                <!-- Card injetado por unifed_card_amt01.js -->
+            </section>
+
+            <!-- Toolbar de ferramentas -->
+            <section id="export-tools-container" class="toolbar-section">
+                <h3>FERRAMENTAS DE ANÁLISE</h3>
+                <button id="exportPDFBtn" class="btn-tool" title="Gerar Relatório Técnico (PDF)">
+                    <i class="fas fa-file-pdf"></i> PARECER TÉCNICO
+                </button>
+                <button id="exportJSONBtn" class="btn-tool" title="Exportar dados em JSON">
+                    <i class="fas fa-file-code"></i> EXPORTAR JSON
+                </button>
+                <button id="resetBtn" class="btn-tool" title="Reiniciar sistema e apagar dados">
+                    <i class="fas fa-redo"></i> REINICIAR
+                </button>
+                <button id="clearConsoleBtn" class="btn-tool" title="Limpar logs de consola">
+                    <i class="fas fa-trash"></i> LIMPAR CONSOLE
+                </button>
+            </section>
+
+            <!-- Consola de logs (opcional) -->
+            <section id="consoleSection" class="console-section">
+                <h3>CONSOLA DE DIAGNÓSTICO</h3>
+                <div id="consoleOutput" class="console-output">
+                    <!-- Logs injetados via JavaScript -->
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Modal de Cadeia de Custódia -->
+    <div id="hashVerificationModal" class="modal" style="display:none; opacity:0;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🔒 VERIFICAÇÃO DE INTEGRIDADE — CADEIA DE CUSTÓDIA</h2>
+                <button id="closeHashBtn" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <h3>Master Hash SHA-256</h3>
+                <div id="masterHashFull" class="hash-display">
+                    <!-- Hash injetado via JavaScript -->
+                </div>
+                
+                <h3>Eventos de Custódia</h3>
+                <div id="evidenceHashList" class="evidence-list">
+                    <!-- Lista de evidências injetada -->
+                </div>
+                
+                <h3>QR Code de Verificação</h3>
+                <div id="qrCodeContainer" class="qr-container">
+                    <!-- QR Code será gerado aqui -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================ -->
+    <!-- SCRIPTS — ORDEM OBRIGATÓRIA (CRÍTICA)                         -->
+    <!-- ================================================================ -->
+    
+    <!-- PASSO 1: ACTIVADOR DE PAINEL (pré-requisito) -->
+    <script src="unifed_panel_activator.js"></script>
+    
+    <!-- PASSO 2: FIXES COMPREENSIVOS (VUL-001 a VUL-007) -->
+    <script src="unifed_fixes_comprehensive.js"></script>
+    
+    <!-- PASSO 3: SCRIPT PRINCIPAL (sistema forense) -->
+    <script src="script.js"></script>
+    
+    <!-- PASSO 4: INJEÇÃO ADICIONAL (lógica dinâmica) -->
+    <script src="script_injection.js"></script>
+    
+    <!-- PASSO 5: ENRIQUECIMENTO (dados complementares) -->
+    <script src="enrichment.js"></script>
+    
+    <!-- PASSO 6: NEXUS (integração de dados) -->
+    <script src="nexus.js"></script>
+    
+    <!-- PASSO 7: CARD AMT-01 (análise de compliance regulatório) -->
+    <script src="unifed_card_amt01.js"></script>
+    
+    <!-- PASSO 8: LOCALIZAÇÃO (PT/EN com símbolos monetários) -->
+    <script src="unifed_localization_fix.js"></script>
+    
+    <!-- PASSO 9: BOTÕES TOOLBAR (funcionalidade completa) -->
+    <script src="unifed_toolbar_buttons.js"></script>
+    
+    <!-- PASSO 10: EXPORTAÇÃO (tríade documental final) -->
+    <script src="unifed_triada_export.js"></script>
+
+    <!-- ================================================================ -->
+    <!-- VERIFICAÇÃO PÓS-CARREGAMENTO (OPCIONAL)                        -->
+    <!-- ================================================================ -->
+    <script>
+        // Verificar que todos os módulos FASE II foram carregados
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('════════════════════════════════════════════════════════');
+            console.log('✅ UNIFED-PROBATUM v13.12.2-i18n + FASE II+III CARREGADO');
+            console.log('════════════════════════════════════════════════════════');
+            
+            // Verificar flags de módulos
+            const flags = [
+                'phase2_harmonized',
+                'phase2_amt01',
+                'phase2_localization',
+                'phase2_toolbar'
+            ];
+            
+            flags.forEach(flag => {
+                if (window[flag] === true) {
+                    console.log(`✓ ${flag} = true`);
+                } else {
+                    console.warn(`⚠ ${flag} não detectado`);
+                }
+            });
+            
+            console.log('════════════════════════════════════════════════════════');
+            console.log('Master Hash (Golden Image FASE II):');
+            console.log('b76daad935a2c3daca7f4742d6d73d4fb04d984312cef2d7939a577cd9c03a52');
+            console.log('════════════════════════════════════════════════════════');
+        });
+    </script>
+</body>
+</html>
