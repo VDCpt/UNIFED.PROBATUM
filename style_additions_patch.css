@@ -1,0 +1,122 @@
+/**
+ * ============================================================================
+ * UNIFED - PROBATUM · style_additions.css
+ * ============================================================================
+ * Versão      : v2.0.0-HEADER-FIX
+ * Data        : 2026-04-18
+ * Âmbito      : Correcções de layout pós-saneamento visual
+ *               + Blindagem do #pureDashboardWrapper
+ *
+ * RETIFICAÇÕES APLICADAS:
+ *   FIX-01 · .header-left — Alinhamento após remoção do .version-badge
+ *   FIX-02 · #pureDashboardWrapper — Blindagem contra opacity:0 residual
+ *   FIX-03 · .activated — Garantia de visibilidade após Post-Auth Flow
+ *   FIX-04 · .unifed-header — Layout responsivo do header completo
+ * ============================================================================
+ */
+
+/* ============================================================================
+   FIX-01 · HEADER LEFT — Alinhamento após remoção do .version-badge
+   ============================================================================
+   CONTEXTO: O .version-badge foi removido do DOM (Saneamento Visual, Tarefa 1).
+   Sem o badge, o .header-left com align-items: baseline ou flex-start pode
+   colapsar verticalmente ou deixar espaço vazio no slot direito do flex container.
+   A correcção força align-items: center e gap: 15px para manter o título
+   e o QR CODE em linha perfeita, independentemente do conteúdo do slot esquerdo.
+   ============================================================================ */
+
+.header-left {
+    display:     flex          !important;
+    align-items: center       !important;
+    gap:         15px         !important;
+    flex:        1            !important;
+    min-width:   0;                        /* Previne overflow em viewports estreitos */
+}
+
+/* Título principal do header — sem quebra de linha */
+.header-left h1 {
+    white-space:  nowrap;
+    overflow:     hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 0;
+}
+
+/* ============================================================================
+   FIX-02 · HEADER RIGHT — Alinhamento dos botões de controlo
+   ============================================================================ */
+
+.header-right {
+    display:     flex         !important;
+    align-items: center       !important;
+    gap:         10px         !important;
+    flex-shrink: 0;
+}
+
+/* ============================================================================
+   FIX-03 · UNIFED-HEADER — Layout completo do header (Flexbox)
+   ============================================================================ */
+
+.unifed-header {
+    display:         flex             !important;
+    align-items:     center           !important;
+    justify-content: space-between    !important;
+    flex-wrap:       nowrap;
+    gap:             12px;
+}
+
+/* ============================================================================
+   FIX-04 · #pureDashboardWrapper — Blindagem pós-autenticação
+   ============================================================================
+   CONTEXTO: O overlay de login tem z-index: 99999. Após a sua remoção do DOM,
+   nenhum z-index residual deve bloquear a interacção com os elementos do
+   dashboard. Estas regras garantem que o wrapper permanece visível e
+   interactivo após a chamada a _activatePurePanel() ou à aplicação directa
+   de opacity:1 pelo _onAuthSuccess().
+   ============================================================================ */
+
+#pureDashboardWrapper {
+    transition: opacity 0.3s ease;
+}
+
+/* Estado activado — aplicado pelo _onAuthSuccess() e pelo harmonizador */
+#pureDashboardWrapper.activated {
+    display:        block     !important;
+    opacity:        1         !important;
+    visibility:     visible   !important;
+    height:         auto      !important;
+    overflow:       visible   !important;
+    pointer-events: auto      !important;
+    /* z-index deliberadamente ausente para evitar criar novo stacking context */
+}
+
+/* ============================================================================
+   FIX-05 · Botão .version-badge — Regras órfãs limpas
+   ============================================================================
+   Se o ficheiro style.css original contiver regras .version-badge que criem
+   um slot de 0px no layout, esta declaração anula o impacto visual.
+   ============================================================================ */
+
+.version-badge {
+    display: none !important;
+}
+
+/* ============================================================================
+   FIX-06 · Responsividade do header em viewports < 480px
+   ============================================================================ */
+
+@media (max-width: 480px) {
+    .unifed-header {
+        flex-direction: row;
+        flex-wrap:      wrap;
+        gap:            8px;
+        padding:        10px 12px;
+    }
+
+    .header-left h1 {
+        font-size: clamp(13px, 3vw, 18px);
+    }
+
+    .header-right {
+        gap: 6px;
+    }
+}

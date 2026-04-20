@@ -1,0 +1,1791 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <title>UNIFED-PROBATUM v13.12.3-PRO · Motor de Contraditório</title>
+
+    <!-- ===================================================================
+         MANIFESTO DE INTEGRIDADE — EMBUTIDO
+         Sistema  : UNIFED-PROBATUM v13.12.3-PRO-RELEASE-CANDIDATE
+         Módulos  : 6 (engine + ui + export + orchestrator + merkle + panorâmico)
+         Hashes SHA-256 (fontes originais verificadas):
+           Engine     : 95f9c90b7d36b889907ecf9feb6bc6d13b3769908f3c7cf449d741a24b5c31a5
+           UI         : a215aa03dda48de3dfc92e781fba87c89fcbf3ae873c5eeab35a2061e3286133
+           PDF Export : 488492bc6249df6d5dc97c8826f78d6f1425cd330b4eedf2554a7bc04c07f762
+           Orchestrat.: 7575f72c2f3229046b8498c20a4da613945c3c47e651707a4e64dd1e133ceb71
+           Arquivo ZIP: 559503430d7da7a7bb40ccb50c32b30b2721709e663cf4c3597b803e127ac4c3
+         RECTIFICAÇÕES v13.12.3-PRO-FINAL:
+           [R1] Credenciais hardcoded removidas (CWE-798 mitigado)
+           [R2] Autenticação local substituída por session key de processo
+           [R3] Declaração de arquitectura de rede tornada honesta
+           [R4] "Claude — Perito Forense" removido; identidade corrigida
+           [R5] Marca de água corrigida para texto factual
+           [R6] SHA-256 aplicado; referência a algoritmo inexistente "SHA-253" eliminada
+           [R7] Zero-footprint: sem NIF, nomes ou dados de processo hardcoded
+         ADIÇÕES v13.12.3-PRO-RC1:
+           [A1] Layout Panorâmico 16:9 optimizado para ecrã de tribunal
+           [A2] Motor Merkle Tree (Selective Disclosure / eIDAS 2.0 compatible)
+           [A3] Master Hash SHA-256 gerado sobre raiz Merkle — exibido no rodapé
+           [A4] Ecrã de Inicialização panorâmico com campos vazios (zero-footprint)
+         =================================================================== -->
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@300;400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
+
+    <style>
+        /* ============================================================
+           RESET & VARIÁVEIS GLOBAIS
+           ============================================================ */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --c-bg:         #040810;
+            --c-bg2:        #070d1c;
+            --c-surface:    #0b1528;
+            --c-surface2:   #0f1d38;
+            --c-surface3:   #132040;
+            --c-border:     rgba(51,75,115,0.4);
+            --c-border2:    rgba(71,105,155,0.25);
+            --c-red:        #ef4444;
+            --c-red-dim:    rgba(239,68,68,0.12);
+            --c-orange:     #f97316;
+            --c-amber:      #f59e0b;
+            --c-green:      #10b981;
+            --c-green-dim:  rgba(16,185,129,0.1);
+            --c-blue:       #3b82f6;
+            --c-blue-dim:   rgba(59,130,246,0.12);
+            --c-indigo:     #6366f1;
+            --c-cyan:       #06b6d4;
+            --c-slate:      #94a3b8;
+            --c-text:       #cbd5e1;
+            --c-text-dim:   #94a3b8;
+            --c-text-muted: #4a5568;
+            --f-mono:       'JetBrains Mono', 'IBM Plex Mono', 'Courier New', monospace;
+            --f-sans:       'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
+            --radius:       8px;
+            --shadow:       0 2px 20px rgba(0,0,0,0.4);
+        }
+
+        html, body {
+            background: var(--c-bg);
+            color: var(--c-text);
+            font-family: var(--f-sans);
+            font-size: 14px;
+            min-height: 100vh;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* ── Scrollbar ── */
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: var(--c-bg); }
+        ::-webkit-scrollbar-thumb { background: var(--c-surface3); border-radius: 3px; }
+
+        /* ── Layout raiz ── */
+        #app {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background:
+                radial-gradient(ellipse 80% 50% at 50% -10%, rgba(59,130,246,0.06) 0%, transparent 60%),
+                var(--c-bg);
+        }
+
+        /* ============================================================
+           HEADER — PANORÂMICO
+           ============================================================ */
+        #sys-header {
+            background: linear-gradient(90deg, #040a1c 0%, #080f22 60%, #050c1e 100%);
+            border-bottom: 1px solid var(--c-border);
+            padding: 0 2rem;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 200;
+            flex-shrink: 0;
+        }
+
+        .header-left { display: flex; align-items: center; gap: 1.25rem; }
+
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+        .brand-icon {
+            width: 32px; height: 32px;
+            background: linear-gradient(135deg, #1e3a8a, #1d4ed8);
+            border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px;
+            border: 1px solid rgba(59,130,246,0.3);
+            flex-shrink: 0;
+        }
+        .brand-text { display: flex; flex-direction: column; }
+        .brand-name {
+            font-family: var(--f-mono);
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #e2e8f0;
+            letter-spacing: 0.8px;
+            white-space: nowrap;
+        }
+        .brand-sub {
+            font-size: 0.65rem;
+            color: var(--c-text-muted);
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+        }
+
+        .header-divider {
+            width: 1px;
+            height: 28px;
+            background: var(--c-border);
+        }
+
+        #session-indicator {
+            font-family: var(--f-mono);
+            font-size: 0.72rem;
+            color: var(--c-text-muted);
+            white-space: nowrap;
+        }
+
+        .header-actions { display: flex; gap: 0.5rem; align-items: center; flex-wrap: nowrap; }
+
+        /* ── Botões ── */
+        .btn {
+            padding: 0.4rem 0.85rem;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.78rem;
+            font-weight: 600;
+            font-family: var(--f-sans);
+            transition: opacity 0.15s, transform 0.1s, box-shadow 0.15s;
+            white-space: nowrap;
+            letter-spacing: 0.2px;
+        }
+        .btn:hover { opacity: 0.88; transform: translateY(-1px); }
+        .btn:active { transform: translateY(0); opacity: 1; }
+        .btn-arch   { background: rgba(99,102,241,0.15); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.35); }
+        .btn-start  { background: var(--c-green); color: #fff; box-shadow: 0 2px 10px rgba(16,185,129,0.25); }
+        .btn-danger { background: var(--c-red); color: #fff; box-shadow: 0 2px 10px rgba(239,68,68,0.2); }
+        .btn-neutral{ background: rgba(100,116,139,0.15); color: #94a3b8; border: 1px solid var(--c-border); }
+        .btn-export { background: rgba(6,182,212,0.12); color: #67e8f9; border: 1px solid rgba(6,182,212,0.3); }
+        .btn-select { background: rgba(249,115,22,0.12); color: #fdba74; border: 1px solid rgba(249,115,22,0.3); }
+
+        /* ── Badge q-count ── */
+        #q-count-badge {
+            font-family: var(--f-mono);
+            font-size: 0.72rem;
+            color: var(--c-amber);
+            background: rgba(245,158,11,0.12);
+            border: 1px solid rgba(245,158,11,0.3);
+            border-radius: 4px;
+            padding: 0.22rem 0.55rem;
+            white-space: nowrap;
+        }
+
+        /* ============================================================
+           ECRÃ DE INICIALIZAÇÃO — PANORÂMICO 16:9
+           ============================================================ */
+        #session-init {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            min-height: calc(100vh - 56px - 44px);
+        }
+
+        .init-panel {
+            width: 100%;
+            max-width: 960px;
+            background: var(--c-surface);
+            border: 1px solid var(--c-border);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--shadow), 0 0 60px rgba(59,130,246,0.04);
+        }
+
+        .init-header {
+            background: linear-gradient(90deg, #081228 0%, #0c1a38 100%);
+            border-bottom: 1px solid var(--c-border);
+            padding: 1.5rem 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        .init-shield {
+            font-size: 2.5rem;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+        .init-header-text { flex: 1; }
+        .init-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #e2e8f0;
+            font-family: var(--f-mono);
+            letter-spacing: 0.5px;
+            margin-bottom: 0.25rem;
+        }
+        .init-subtitle {
+            font-size: 0.78rem;
+            color: var(--c-text-dim);
+            line-height: 1.5;
+        }
+
+        .init-body {
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .init-col-info {
+            grid-column: span 1;
+        }
+        .init-col-form {
+            grid-column: span 2;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.25rem;
+        }
+
+        /* Info lateral */
+        .init-stat-box {
+            background: var(--c-surface2);
+            border: 1px solid var(--c-border2);
+            border-radius: var(--radius);
+            padding: 1rem 1.25rem;
+            margin-bottom: 0.75rem;
+        }
+        .init-stat-label {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--c-text-muted);
+            margin-bottom: 0.4rem;
+            font-weight: 600;
+        }
+        .init-stat-value {
+            font-family: var(--f-mono);
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--c-blue);
+        }
+        .init-stat-desc {
+            font-size: 0.72rem;
+            color: var(--c-text-dim);
+            margin-top: 0.25rem;
+        }
+
+        .init-norm-list {
+            list-style: none;
+            padding: 0;
+        }
+        .init-norm-list li {
+            font-size: 0.72rem;
+            color: var(--c-text-dim);
+            padding: 0.3rem 0;
+            border-bottom: 1px solid var(--c-border2);
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .init-norm-list li:last-child { border-bottom: none; }
+
+        /* Form fields */
+        .input-field {
+            display: flex;
+            flex-direction: column;
+            gap: 0.45rem;
+        }
+        .input-field label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--c-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        }
+        .input-field input, .input-field select {
+            background: var(--c-surface2);
+            border: 1px solid var(--c-border);
+            border-radius: 6px;
+            color: #e2e8f0;
+            padding: 0.65rem 0.85rem;
+            font-size: 0.88rem;
+            width: 100%;
+            font-family: var(--f-mono);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .input-field input:focus, .input-field select:focus {
+            outline: none;
+            border-color: var(--c-blue);
+            box-shadow: 0 0 0 2px rgba(59,130,246,0.18);
+        }
+        .input-field input::placeholder { color: var(--c-text-muted); font-style: italic; }
+
+        .init-col-form .span-full { grid-column: span 2; }
+
+        .aviso-init {
+            background: rgba(59,130,246,0.07);
+            border: 1px solid rgba(59,130,246,0.2);
+            border-radius: 6px;
+            padding: 0.75rem 1rem;
+            font-size: 0.75rem;
+            color: #93c5fd;
+            line-height: 1.55;
+            grid-column: span 2;
+        }
+
+        .init-footer {
+            padding: 1.25rem 2rem;
+            background: var(--c-surface2);
+            border-top: 1px solid var(--c-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+        .init-footer-note {
+            font-size: 0.72rem;
+            color: var(--c-text-muted);
+            font-family: var(--f-mono);
+        }
+        .init-actions { display: flex; gap: 0.75rem; }
+
+        /* ============================================================
+           DASHBOARD PRINCIPAL — PANORÂMICO
+           ============================================================ */
+        #dashboard {
+            display: none;
+            flex: 1;
+            flex-direction: column;
+        }
+
+        /* Sub-header de sessão */
+        #session-bar {
+            background: var(--c-surface2);
+            border-bottom: 1px solid var(--c-border);
+            padding: 0.5rem 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+        .session-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.75rem;
+        }
+        .session-meta .lbl { color: var(--c-text-muted); }
+        .session-meta .val { font-family: var(--f-mono); color: #e2e8f0; font-weight: 600; }
+        .session-meta .sep { color: var(--c-border); }
+
+        /* Layout 3 colunas para o dashboard */
+        #dash-body {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 280px 1fr 260px;
+            gap: 0;
+            min-height: 0;
+        }
+
+        /* Coluna esquerda — filtros e stats */
+        #dash-left {
+            background: var(--c-bg2);
+            border-right: 1px solid var(--c-border);
+            padding: 1.25rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        /* Coluna central — acordeão */
+        #dash-center {
+            overflow-y: auto;
+            padding: 1.25rem;
+        }
+
+        /* Coluna direita — acções e exportação */
+        #dash-right {
+            background: var(--c-bg2);
+            border-left: 1px solid var(--c-border);
+            padding: 1.25rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        /* ── Painéis laterais ── */
+        .side-panel {
+            background: var(--c-surface);
+            border: 1px solid var(--c-border);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+        .side-panel-header {
+            background: var(--c-surface2);
+            padding: 0.6rem 0.85rem;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--c-text-muted);
+            border-bottom: 1px solid var(--c-border);
+        }
+        .side-panel-body { padding: 0.85rem; }
+
+        /* ── Filtros ── */
+        .filter-btn {
+            display: block;
+            width: 100%;
+            text-align: left;
+            padding: 0.5rem 0.75rem;
+            margin-bottom: 0.35rem;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.78rem;
+            font-weight: 600;
+            font-family: var(--f-sans);
+            transition: background 0.15s, color 0.15s;
+        }
+        .filter-btn.all    { background: rgba(100,116,139,0.15); color: #94a3b8; border: 1px solid var(--c-border); }
+        .filter-btn.critico{ background: var(--c-red-dim); color: #fca5a5; border: 1px solid rgba(239,68,68,0.25); }
+        .filter-btn.alto   { background: rgba(249,115,22,0.1); color: #fdba74; border: 1px solid rgba(249,115,22,0.25); }
+        .filter-btn:hover  { opacity: 0.85; }
+
+        /* ── Stats ── */
+        .stat-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.35rem 0;
+            border-bottom: 1px solid var(--c-border2);
+            font-size: 0.78rem;
+        }
+        .stat-row:last-child { border-bottom: none; }
+        .stat-row .slbl { color: var(--c-text-dim); }
+        .stat-row .sval {
+            font-family: var(--f-mono);
+            font-weight: 700;
+            color: var(--c-blue);
+        }
+        .stat-total {
+            text-align: center;
+            padding: 0.5rem;
+            font-family: var(--f-mono);
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--c-amber);
+        }
+        .stat-total-lbl {
+            text-align: center;
+            font-size: 0.65rem;
+            color: var(--c-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: -0.25rem;
+        }
+
+        /* ── Botões de acção direita ── */
+        .action-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            width: 100%;
+            padding: 0.65rem 0.9rem;
+            margin-bottom: 0.5rem;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+            font-family: var(--f-sans);
+            transition: opacity 0.15s, transform 0.1s;
+        }
+        .action-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+        .action-btn.primary { background: var(--c-green); color: #fff; box-shadow: 0 2px 10px rgba(16,185,129,0.2); }
+        .action-btn.arch    { background: rgba(99,102,241,0.15); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.35); }
+        .action-btn.warn    { background: rgba(249,115,22,0.12); color: #fdba74; border: 1px solid rgba(249,115,22,0.3); }
+        .action-btn.danger  { background: rgba(239,68,68,0.12); color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
+
+        .export-status {
+            background: rgba(16,185,129,0.08);
+            border: 1px solid rgba(16,185,129,0.25);
+            border-radius: 6px;
+            padding: 0.65rem 0.75rem;
+            font-size: 0.73rem;
+            color: #6ee7b7;
+            line-height: 1.5;
+            display: none;
+        }
+        .export-status code { font-size: 0.68rem; word-break: break-all; }
+
+        /* Merkle info box */
+        .merkle-box {
+            background: rgba(6,182,212,0.06);
+            border: 1px solid rgba(6,182,212,0.2);
+            border-radius: 6px;
+            padding: 0.65rem 0.75rem;
+        }
+        .merkle-box .mbl { font-size: 0.68rem; color: var(--c-cyan); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.35rem; }
+        .merkle-box .mbv { font-family: var(--f-mono); font-size: 0.65rem; color: #67e8f9; word-break: break-all; line-height: 1.4; }
+
+        /* ============================================================
+           ACORDEÃO CENTRAL
+           ============================================================ */
+        .eixo-header {
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: var(--c-text-muted);
+            margin: 1.25rem 0 0.5rem;
+            padding: 0.35rem 0 0.35rem 0.75rem;
+            border-left: 3px solid var(--c-border);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .eixo-header:first-child { margin-top: 0; }
+
+        .pure-accordion-item {
+            background: var(--c-surface);
+            border: 1px solid var(--c-border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            margin-bottom: 0.4rem;
+        }
+        .pure-accordion-item:hover { border-color: rgba(71,105,155,0.5); }
+        .pure-accordion-item.active {
+            border-color: rgba(239,68,68,0.45);
+            box-shadow: 0 2px 12px rgba(239,68,68,0.08);
+        }
+        .pure-accordion-header {
+            display: flex;
+            align-items: center;
+            padding: 0.7rem 0.85rem;
+            background: var(--c-surface2);
+            cursor: pointer;
+            user-select: none;
+            gap: 0.6rem;
+            transition: background 0.15s;
+        }
+        .pure-accordion-header:hover { background: var(--c-surface3); }
+        .pure-accordion-checkbox {
+            width: 16px; height: 16px;
+            cursor: pointer;
+            accent-color: var(--c-red);
+            flex-shrink: 0;
+        }
+        .pure-accordion-title { flex: 1; font-weight: 600; font-size: 0.82rem; color: #e2e8f0; }
+        .pure-accordion-priority {
+            display: inline-block;
+            padding: 0.15rem 0.5rem;
+            border-radius: 20px;
+            font-size: 0.63rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            flex-shrink: 0;
+        }
+        .pure-accordion-priority.critico { background: rgba(239,68,68,0.15); color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
+        .pure-accordion-priority.alto    { background: rgba(249,115,22,0.15); color: #fdba74; border: 1px solid rgba(249,115,22,0.3); }
+        .pure-accordion-toggle { color: var(--c-text-muted); font-size: 0.6rem; transition: transform 0.2s; flex-shrink: 0; }
+        .pure-accordion-item.active .pure-accordion-toggle { transform: rotate(180deg); }
+        .pure-accordion-content {
+            display: none;
+            padding: 0.85rem;
+            background: rgba(4,8,16,0.7);
+            border-top: 1px solid var(--c-border);
+        }
+        .pure-accordion-item.active .pure-accordion-content { display: block; }
+        .pure-question-text   { font-size: 0.83rem; line-height: 1.55; color: var(--c-text); margin-bottom: 0.6rem; }
+        .pure-question-norma  { font-size: 0.73rem; color: #94a3b8; background: rgba(71,85,105,0.15); padding: 0.4rem 0.65rem; border-radius: 4px; margin-bottom: 0.5rem; border-left: 2px solid var(--c-blue); }
+        .pure-question-impl   { font-size: 0.76rem; color: #fca5a5; background: rgba(239,68,68,0.07); padding: 0.55rem 0.65rem; border-radius: 4px; margin-bottom: 0.35rem; border-left: 2px solid var(--c-red); }
+        .pure-question-contra { font-size: 0.76rem; color: #6ee7b7; background: rgba(16,185,129,0.07); padding: 0.55rem 0.65rem; border-radius: 4px; border-left: 2px solid var(--c-green); }
+
+        /* ============================================================
+           RODAPÉ — MASTER HASH
+           ============================================================ */
+        #sys-footer {
+            background: linear-gradient(90deg, #040a1c 0%, #07102a 50%, #040a1c 100%);
+            border-top: 1px solid var(--c-border);
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 2rem;
+            flex-shrink: 0;
+            gap: 1rem;
+        }
+        .footer-left {
+            font-size: 0.68rem;
+            color: var(--c-text-muted);
+            font-family: var(--f-mono);
+            white-space: nowrap;
+        }
+        .footer-master-hash {
+            text-align: center;
+            flex: 1;
+        }
+        .footer-master-hash .mh-label {
+            font-family: var(--f-mono);
+            font-size: 0.62rem;
+            color: var(--c-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-right: 0.4rem;
+        }
+        .footer-master-hash .mh-value {
+            font-family: var(--f-mono);
+            font-size: 0.65rem;
+            color: var(--c-green);
+            font-weight: 600;
+            letter-spacing: 0.2px;
+        }
+        .footer-right {
+            font-size: 0.68rem;
+            color: var(--c-text-muted);
+            font-family: var(--f-mono);
+            white-space: nowrap;
+        }
+
+        /* ============================================================
+           MODAL DE ARQUITECTURA
+           ============================================================ */
+        #arch-modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(2,5,15,0.88);
+            z-index: 500;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+        #arch-modal-overlay.visible { display: flex; }
+        #arch-modal {
+            background: var(--c-surface);
+            border: 1px solid var(--c-border);
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 820px;
+            width: 95%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+            position: relative;
+        }
+        #arch-modal h2 { font-size: 1.1rem; font-weight: 700; color: #e2e8f0; margin-bottom: 0.35rem; }
+        .modal-sub { font-size: 0.75rem; color: var(--c-text-dim); line-height: 1.5; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--c-border); }
+        .modal-close-btn {
+            position: absolute;
+            top: 1rem; right: 1rem;
+            background: transparent;
+            border: 1px solid var(--c-border);
+            color: var(--c-text-dim);
+            border-radius: 5px;
+            padding: 0.3rem 0.7rem;
+            cursor: pointer;
+            font-size: 0.78rem;
+            transition: background 0.15s;
+        }
+        .modal-close-btn:hover { background: var(--c-surface2); }
+
+        .arch-section { margin-bottom: 1.5rem; }
+        .arch-section h3 { font-size: 0.8rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 0.75rem; }
+        .arch-declaration {
+            background: rgba(245,158,11,0.06);
+            border: 1px solid rgba(245,158,11,0.2);
+            border-radius: 6px;
+            padding: 1rem 1.1rem;
+            font-size: 0.79rem;
+            color: #cbd5e1;
+            line-height: 1.6;
+        }
+        .arch-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+        .arch-table th { background: var(--c-surface2); color: #94a3b8; padding: 0.5rem 0.75rem; text-align: left; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.4px; }
+        .arch-table td { padding: 0.5rem 0.75rem; border-top: 1px solid var(--c-border); color: var(--c-text); vertical-align: top; }
+        .hash-cell { font-family: var(--f-mono); font-size: 0.67rem; color: #4ade80; word-break: break-all; }
+        .hash-caveat { font-size: 0.72rem; color: var(--c-text-muted); margin-top: 0.75rem; line-height: 1.5; border-top: 1px solid var(--c-border); padding-top: 0.6rem; }
+        .hash-caveat code { background: var(--c-surface2); padding: 0.1rem 0.3rem; border-radius: 3px; font-size: 0.68rem; }
+
+        .hash-live {
+            font-family: var(--f-mono);
+            font-size: 0.7rem;
+            color: #4ade80;
+            background: var(--c-surface2);
+            border: 1px solid rgba(74,222,128,0.2);
+            border-radius: 5px;
+            padding: 0.6rem 0.75rem;
+            word-break: break-all;
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+
+        #arch-diagram-container { overflow-x: auto; }
+
+        #qr-container { display: flex; flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+        #qr-code-div { background: #fff; padding: 8px; border-radius: 6px; display: inline-block; }
+
+        .norm-badges { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+        .norm-badge {
+            padding: 0.25rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        .nb-blue   { background: var(--c-blue-dim); color: #93c5fd; border: 1px solid rgba(59,130,246,0.25); }
+        .nb-green  { background: var(--c-green-dim); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.25); }
+        .nb-amber  { background: rgba(245,158,11,0.1); color: #fcd34d; border: 1px solid rgba(245,158,11,0.25); }
+
+        /* Merkle tree section */
+        .merkle-tree-box {
+            font-family: var(--f-mono);
+            font-size: 0.68rem;
+            background: rgba(6,182,212,0.05);
+            border: 1px solid rgba(6,182,212,0.2);
+            border-radius: 6px;
+            padding: 0.75rem;
+            color: #67e8f9;
+            line-height: 1.7;
+            word-break: break-all;
+            white-space: pre-wrap;
+        }
+
+        /* ============================================================
+           RESPONSIVIDADE PARCIAL (para ecrãs abaixo de 900px)
+           ============================================================ */
+        @media (max-width: 900px) {
+            #dash-body { grid-template-columns: 1fr; }
+            #dash-left, #dash-right { border: none; border-bottom: 1px solid var(--c-border); }
+            .init-body { grid-template-columns: 1fr; }
+            .init-col-info { grid-column: span 1; }
+            .init-col-form { grid-column: span 1; grid-template-columns: 1fr; }
+            .init-col-form .span-full { grid-column: span 1; }
+            .aviso-init { grid-column: span 1; }
+        }
+
+    </style>
+</head>
+<body>
+<div id="app">
+
+    <!-- ═══════════════════════════════════════════════ HEADER ══ -->
+    <header id="sys-header">
+        <div class="header-left">
+            <div class="brand-logo">
+                <div class="brand-icon">🛡️</div>
+                <div class="brand-text">
+                    <div class="brand-name">UNIFED-PROBATUM v13.12.3-PRO</div>
+                    <div class="brand-sub">Motor Lógico de Apoio ao Contraditório · Jurisdição PT-PT</div>
+                </div>
+            </div>
+            <div class="header-divider"></div>
+            <span id="session-indicator">⬤ &nbsp;Sem sessão activa</span>
+        </div>
+        <div class="header-actions">
+            <span id="q-count-badge">0/50</span>
+            <button class="btn btn-arch" onclick="UI.openArchModal()">🛡️ Arquitectura</button>
+            <button class="btn btn-danger" id="btn-reset" onclick="APP.resetSession()" style="display:none;">✕ Encerrar Sessão</button>
+        </div>
+    </header>
+
+    <!-- ═══════════════════════════════════ ECRÃ DE INICIALIZAÇÃO ══ -->
+    <div id="session-init">
+        <div class="init-panel">
+            <div class="init-header">
+                <div class="init-shield">🔐</div>
+                <div class="init-header-text">
+                    <div class="init-title">INICIALIZAÇÃO DE SESSÃO PERICIAL</div>
+                    <div class="init-subtitle">
+                        Todos os campos são locais ao browser. Nenhum dado é transmitido nesta fase.
+                        O sistema opera em estado neutro — zero entidades, zero valores pré-carregados.
+                    </div>
+                </div>
+            </div>
+            <div class="init-body">
+                <!-- Coluna info -->
+                <div class="init-col-info">
+                    <div class="init-stat-box">
+                        <div class="init-stat-label">Bateria de Questões</div>
+                        <div class="init-stat-value">50</div>
+                        <div class="init-stat-desc">5 eixos · 10 por eixo</div>
+                    </div>
+                    <div class="init-stat-box">
+                        <div class="init-stat-label">Algoritmo Integridade</div>
+                        <div class="init-stat-value" style="font-size:1rem; color:var(--c-cyan);">Merkle SHA-256</div>
+                        <div class="init-stat-desc">Raiz Merkle sobre questões seleccionadas</div>
+                    </div>
+                    <div style="margin-top:0.75rem;">
+                        <div class="init-stat-label" style="font-size:0.65rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--c-text-muted); margin-bottom:0.5rem;">Normas Referenciadas</div>
+                        <ul class="init-norm-list">
+                            <li>⚖️ Art. 125.º / 327.º CPP</li>
+                            <li>📋 ISO/IEC 27037:2012</li>
+                            <li>📋 NIST SP 800-86</li>
+                            <li>🇪🇺 DAC7 (UE) 2021/514</li>
+                            <li>🇪🇺 DORA (UE) 2022/2554</li>
+                            <li>⚖️ Art. 119.º / 103.º RGIT</li>
+                            <li>📡 eIDAS 2.0 (Selective Disc.)</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Coluna formulário -->
+                <div class="init-col-form">
+                    <div class="input-field">
+                        <label>Identificador de Processo *</label>
+                        <input type="text" id="inp-case-id" placeholder="" autocomplete="off" spellcheck="false">
+                    </div>
+                    <div class="input-field">
+                        <label>Mandatário / Referência Interna</label>
+                        <input type="text" id="inp-mandatario" placeholder="" autocomplete="off">
+                    </div>
+                    <div class="input-field">
+                        <label>Período de Análise</label>
+                        <input type="text" id="inp-periodo" placeholder="" autocomplete="off">
+                    </div>
+                    <div class="input-field">
+                        <label>Entidade / Tribunal (Opcional)</label>
+                        <input type="text" id="inp-entidade" placeholder="" autocomplete="off">
+                    </div>
+                    <div class="aviso-init">
+                        ⚠️ <strong>Declaração de Arquitectura:</strong> Os campos acima são processados exclusivamente em memória local (browser). A bateria de 50 questões de contraditório opera offline. Funções de análise por IA (quando configuradas) transmitem dados para servidor externo — consulte o botão <strong>🛡️ Arquitectura</strong> para declaração técnica completa.
+                    </div>
+                </div>
+            </div>
+            <div class="init-footer">
+                <div class="init-footer-note">v13.12.3-PRO-RC1 · Zero-footprint · Sem dados hardcoded</div>
+                <div class="init-actions">
+                    <button class="btn btn-arch" onclick="UI.openArchModal()">🛡️ Ver Arquitectura</button>
+                    <button class="btn btn-start" onclick="APP.initSession()">▶ Iniciar Sessão Pericial</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════ DASHBOARD ══ -->
+    <div id="dashboard">
+
+        <!-- Sub-header de sessão -->
+        <div id="session-bar">
+            <div class="session-meta">
+                <span class="lbl">Processo:</span>
+                <span class="val" id="session-case-label">—</span>
+            </div>
+            <div class="session-meta"><span class="sep">·</span></div>
+            <div class="session-meta">
+                <span class="lbl">Mandatário:</span>
+                <span class="val" id="session-mandatario-label">—</span>
+            </div>
+            <div class="session-meta"><span class="sep">·</span></div>
+            <div class="session-meta">
+                <span class="lbl">Período:</span>
+                <span class="val" id="session-periodo-label">—</span>
+            </div>
+            <div class="session-meta"><span class="sep">·</span></div>
+            <div class="session-meta">
+                <span class="lbl">Sessão:</span>
+                <span class="val" style="color:var(--c-green);" id="session-key-label">—</span>
+            </div>
+        </div>
+
+        <!-- Corpo 3 colunas -->
+        <div id="dash-body">
+
+            <!-- Coluna esquerda — filtros + stats -->
+            <div id="dash-left">
+                <div class="side-panel">
+                    <div class="side-panel-header">Filtros Rápidos</div>
+                    <div class="side-panel-body">
+                        <button class="filter-btn all" onclick="UI.filterQ('ALL')">📋 Todas as Questões (50)</button>
+                        <button class="filter-btn critico" onclick="UI.filterQ('CRÍTICO')">🔴 Apenas CRÍTICO</button>
+                        <button class="filter-btn alto" onclick="UI.filterQ('ALTO')">🟠 Apenas ALTO</button>
+                    </div>
+                </div>
+
+                <div class="side-panel">
+                    <div class="side-panel-header">Selecção por Eixo</div>
+                    <div class="side-panel-body">
+                        <div class="stat-row"><span class="slbl">🔒 Eixo A — Custódia</span><span class="sval" id="st-a">0/10</span></div>
+                        <div class="stat-row"><span class="slbl">📊 Eixo B — DAC7/SAF-T</span><span class="sval" id="st-b">0/10</span></div>
+                        <div class="stat-row"><span class="slbl">⚔️ Eixo C — Nexus-Zero</span><span class="sval" id="st-c">0/10</span></div>
+                        <div class="stat-row"><span class="slbl">🔧 Eixo D — Algoritmo</span><span class="sval" id="st-d">0/10</span></div>
+                        <div class="stat-row"><span class="slbl">⚖️ Eixo E — RGIT</span><span class="sval" id="st-e">0/10</span></div>
+                        <div class="stat-total" id="q-count-main">0</div>
+                        <div class="stat-total-lbl">questões seleccionadas</div>
+                    </div>
+                </div>
+
+                <div class="side-panel">
+                    <div class="side-panel-header">Selecção Automática</div>
+                    <div class="side-panel-body">
+                        <button class="filter-btn critico" onclick="UI.selectSmart()" style="margin-bottom:0.35rem;">⚡ Seleccionar CRÍTICO</button>
+                        <button class="filter-btn all" onclick="UI.deselectAll()">✕ Limpar Selecção</button>
+                    </div>
+                </div>
+
+                <div class="merkle-box">
+                    <div class="mbl">🌲 Raiz Merkle (Live)</div>
+                    <div class="mbv" id="merkle-root-display">— sem questões seleccionadas —</div>
+                </div>
+            </div>
+
+            <!-- Coluna central — acordeão -->
+            <div id="dash-center">
+                <div id="accordion-container"></div>
+            </div>
+
+            <!-- Coluna direita — acções -->
+            <div id="dash-right">
+                <div class="side-panel">
+                    <div class="side-panel-header">Exportação</div>
+                    <div class="side-panel-body">
+                        <button class="action-btn primary" onclick="EXPORT.exportPDF()">
+                            📄 Exportar Guião (HTML/PDF)
+                        </button>
+                        <button class="action-btn arch" onclick="UI.openArchModal()">
+                            🛡️ Relatório de Estado e Arquitectura
+                        </button>
+                        <button class="action-btn warn" onclick="UI.selectSmart(); EXPORT.exportPDF()">
+                            ⚡ Exportar Apenas CRÍTICO
+                        </button>
+                        <button class="action-btn danger" onclick="APP.resetSession()">
+                            ✕ Encerrar Sessão
+                        </button>
+                    </div>
+                </div>
+
+                <div id="export-status" class="export-status"></div>
+
+                <div class="side-panel">
+                    <div class="side-panel-header">Hash de Sessão (Referência Local)</div>
+                    <div class="side-panel-body">
+                        <div class="hash-live" id="session-hash-side">— iniciar sessão —</div>
+                        <div style="font-size:0.67rem; color:var(--c-text-muted); margin-top:0.5rem; line-height:1.45;">
+                            Calculado via SubtleCrypto (WebCrypto API). Valor de referência local — não é verificação pericial independente (ISO/IEC 27037:2012 §7.3).
+                        </div>
+                    </div>
+                </div>
+
+                <div class="side-panel">
+                    <div class="side-panel-header">Aviso Metodológico</div>
+                    <div class="side-panel-body" style="font-size:0.72rem; color:var(--c-text-dim); line-height:1.55;">
+                        ⚠️ Este sistema é um <strong>motor de apoio ao contraditório</strong>. As questões geradas são instrumentos de análise pericial — não constituem per se prova judicial. Requerem validação por perito forense nomeado nos termos do Art. 125.º CPP.<br><br>
+                        O guião exportado deve ser acompanhado por declaração do mandatário quanto à responsabilidade metodológica.
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /dash-body -->
+    </div><!-- /dashboard -->
+
+    <!-- ═══════════════════════════════════════════════ FOOTER ══ -->
+    <footer id="sys-footer">
+        <div class="footer-left">UNIFED-PROBATUM v13.12.3-PRO · PT-PT</div>
+        <div class="footer-master-hash">
+            <span class="mh-label">▊ MASTER HASH SHA-256:</span>
+            <span class="mh-value" id="master-hash-footer">— iniciar sessão e seleccionar questões —</span>
+        </div>
+        <div class="footer-right" id="footer-ts">—</div>
+    </footer>
+
+</div><!-- /app -->
+
+<!-- ═══════════════════════════════════════ MODAL ARQUITECTURA ══ -->
+<div id="arch-modal-overlay" onclick="if(event.target===this) UI.closeArchModal()">
+    <div id="arch-modal">
+        <button class="modal-close-btn" onclick="UI.closeArchModal()">✕ Fechar</button>
+        <h2>🛡️ Relatório de Estado e Arquitectura</h2>
+        <div class="modal-sub">
+            UNIFED-PROBATUM v13.12.3-PRO · Gerado em: <span id="arch-timestamp">—</span><br>
+            Este documento é gerado localmente pelo sistema e descreve a arquitectura real de funcionamento.
+            <strong>Não substitui auditoria pericial independente.</strong>
+        </div>
+
+        <!-- SECÇÃO 1: Arquitectura de Rede -->
+        <div class="arch-section">
+            <h3>1. Declaração de Arquitectura e Fluxo de Dados</h3>
+            <div class="arch-declaration">
+                ⚠️ <strong>DECLARAÇÃO TÉCNICA OBRIGATÓRIA (para efeitos de admissibilidade pericial):</strong><br><br>
+                Este sistema opera como ficheiro HTML local. A bateria de 50 questões de contraditório opera <strong>exclusivamente offline</strong> — sem comunicações externas. O motor Merkle e os cálculos SHA-256 executam via <strong>WebCrypto API (SubtleCrypto)</strong> local ao browser.<br><br>
+                Funções opcionais de análise por IA (se configuradas) transmitem dados via proxy externo (<code>api.unifed.com → api.anthropic.com/v1/messages</code>). <strong>O sistema NÃO é sandbox isolada</strong> nessas funções. O perito deve declarar esta arquitectura em relatório pericial ao abrigo do Art. 125.º CPP.
+            </div>
+        </div>
+
+        <!-- SECÇÃO 2: Diagrama SVG -->
+        <div class="arch-section">
+            <h3>2. Diagrama de Componentes <span style="color:#f59e0b; font-size:0.72rem; font-weight:400;">[ESQUEMA ILUSTRATIVO — SEM VALOR PROBATÓRIO INDEPENDENTE]</span></h3>
+            <div id="arch-diagram-container">
+                <svg viewBox="0 0 720 300" xmlns="http://www.w3.org/2000/svg" style="width:100%; max-width:720px; font-family:'IBM Plex Sans','Segoe UI',sans-serif;">
+                    <defs>
+                        <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#64748b"/></marker>
+                        <marker id="arr-red" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#ef4444"/></marker>
+                        <marker id="arr-green" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#10b981"/></marker>
+                    </defs>
+
+                    <!-- Browser Local -->
+                    <rect x="10" y="80" width="185" height="130" rx="8" fill="#0b1528" stroke="#3b82f6" stroke-width="1.5"/>
+                    <text x="102" y="105" text-anchor="middle" fill="#93c5fd" font-size="11" font-weight="700">BROWSER LOCAL</text>
+                    <text x="102" y="122" text-anchor="middle" fill="#60a5fa" font-size="9">index_v13.12.3_PRO_FINAL.html</text>
+                    <text x="102" y="140" text-anchor="middle" fill="#4ade80" font-size="9">⬤ WebCrypto API (SubtleCrypto)</text>
+                    <text x="102" y="157" text-anchor="middle" fill="#4ade80" font-size="9">⬤ Motor Merkle SHA-256</text>
+                    <text x="102" y="174" text-anchor="middle" fill="#4ade80" font-size="9">⬤ 50Q Database (inline)</text>
+                    <text x="102" y="198" text-anchor="middle" fill="#4ade80" font-size="9.5">⬤ OFFLINE — LOCAL</text>
+
+                    <!-- Seta para Proxy (pontilhada, vermelha - opcional) -->
+                    <line x1="195" y1="135" x2="285" y2="135" stroke="#ef4444" stroke-width="1.5" marker-end="url(#arr-red)" stroke-dasharray="5,3"/>
+                    <text x="240" y="124" text-anchor="middle" fill="#fca5a5" font-size="8.5">Funções IA (opt.)</text>
+                    <text x="240" y="150" text-anchor="middle" fill="#fca5a5" font-size="8">(dados do utilizador)</text>
+
+                    <!-- Proxy -->
+                    <rect x="285" y="95" width="155" height="90" rx="8" fill="#0b1528" stroke="#f59e0b" stroke-width="1.5"/>
+                    <text x="362" y="120" text-anchor="middle" fill="#fcd34d" font-size="10.5" font-weight="700">PROXY EXTERNO</text>
+                    <text x="362" y="137" text-anchor="middle" fill="#fbbf24" font-size="9">api.unifed.com</text>
+                    <text x="362" y="154" text-anchor="middle" fill="#fbbf24" font-size="9">/claude-proxy</text>
+                    <text x="362" y="173" text-anchor="middle" fill="#f59e0b" font-size="8.5">⚠️ SERVIDOR TERCEIRO</text>
+
+                    <!-- Seta Proxy → Anthropic -->
+                    <line x1="440" y1="135" x2="525" y2="135" stroke="#ef4444" stroke-width="1.5" marker-end="url(#arr-red)"/>
+                    <text x="482" y="124" text-anchor="middle" fill="#fca5a5" font-size="8.5">Forward</text>
+                    <text x="482" y="150" text-anchor="middle" fill="#fca5a5" font-size="8">API_KEY</text>
+
+                    <!-- Anthropic -->
+                    <rect x="525" y="95" width="180" height="90" rx="8" fill="#0b1528" stroke="#8b5cf6" stroke-width="1.5"/>
+                    <text x="615" y="120" text-anchor="middle" fill="#c4b5fd" font-size="10.5" font-weight="700">ANTHROPIC API</text>
+                    <text x="615" y="137" text-anchor="middle" fill="#a78bfa" font-size="9">api.anthropic.com</text>
+                    <text x="615" y="154" text-anchor="middle" fill="#a78bfa" font-size="9">/v1/messages</text>
+                    <text x="615" y="173" text-anchor="middle" fill="#8b5cf6" font-size="8.5">⚠️ SERVIDOR EXTERNO</text>
+
+                    <!-- Merkle box -->
+                    <rect x="10" y="230" width="185" height="55" rx="6" fill="rgba(6,182,212,0.08)" stroke="#06b6d4" stroke-width="1" stroke-dasharray="4,2"/>
+                    <text x="102" y="250" text-anchor="middle" fill="#67e8f9" font-size="9.5" font-weight="600">🌲 Motor Merkle SHA-256</text>
+                    <text x="102" y="266" text-anchor="middle" fill="#67e8f9" font-size="8.5">Selective Disclosure (eIDAS 2.0)</text>
+                    <text x="102" y="279" text-anchor="middle" fill="#67e8f9" font-size="8">Raiz Merkle → Master Hash Footer</text>
+
+                    <!-- Legenda -->
+                    <line x1="285" y1="292" x2="310" y2="292" stroke="#10b981" stroke-width="2" stroke-dasharray="4,2"/>
+                    <text x="315" y="296" fill="#6ee7b7" font-size="8.5">Componente local (offline)</text>
+                    <line x1="470" y1="292" x2="495" y2="292" stroke="#ef4444" stroke-width="2"/>
+                    <text x="500" y="296" fill="#fca5a5" font-size="8.5">Comunicação externa (opt.)</text>
+                </svg>
+            </div>
+        </div>
+
+        <!-- SECÇÃO 3: Merkle Tree -->
+        <div class="arch-section">
+            <h3>3. Motor Merkle SHA-256 — Selective Disclosure <span style="color:#06b6d4; font-size:0.7rem; font-weight:400;">[INOVAÇÃO v13.12.3-PRO]</span></h3>
+            <div class="arch-declaration" style="background:rgba(6,182,212,0.06); border-color:rgba(6,182,212,0.2);">
+                <strong>Fundamento técnico:</strong> Cada questão seleccionada gera um nó-folha SHA-256 (<code>SHA256(q.id + q.questao)</code>). Os nós são combinados por pares em camadas sucessivas até à raiz Merkle (<em>Merkle Root</em>). A raiz é exibida no rodapé como <strong>Master Hash</strong>.<br><br>
+                <strong>Vantagem pericial:</strong> Um terceiro pode verificar criptograficamente que a questão X consta do guião sem revelar todas as outras questões (princípio de <em>Selective Disclosure</em>, análogo ao previsto em eIDAS 2.0 / EUDI Wallet Architecture). Esta abordagem eleva o sistema a padrão de 2030+ em admissibilidade de prova digital.
+            </div>
+            <div class="merkle-tree-box" id="merkle-tree-display" style="margin-top:0.75rem;">
+                — sem questões seleccionadas —
+            </div>
+        </div>
+
+        <!-- SECÇÃO 4: Hashes de Módulos -->
+        <div class="arch-section">
+            <h3>4. Integridade de Módulos (Hashes SHA-256 de Fontes Originais)</h3>
+            <table class="arch-table">
+                <thead>
+                    <tr><th>Módulo</th><th>Versão</th><th>SHA-256 (fonte original verificada)</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>legal_tactics_engine</td><td>v1.0.0</td><td class="hash-cell">95f9c90b7d36b889907ecf9feb6bc6d13b3769908f3c7cf449d741a24b5c31a5</td></tr>
+                    <tr><td>legal_tactics_ui</td><td>v1.0.0</td><td class="hash-cell">a215aa03dda48de3dfc92e781fba87c89fcbf3ae873c5eeab35a2061e3286133</td></tr>
+                    <tr><td>legal_tactics_pdf_export</td><td>v1.0.0</td><td class="hash-cell">488492bc6249df6d5dc97c8826f78d6f1425cd330b4eedf2554a7bc04c07f762</td></tr>
+                    <tr><td>legal_tactics_orchestrator</td><td>v1.0.0</td><td class="hash-cell">7575f72c2f3229046b8498c20a4da613945c3c47e651707a4e64dd1e133ceb71</td></tr>
+                    <tr><td>Arquivo ZIP original</td><td>v13.12.3-PRO</td><td class="hash-cell">559503430d7da7a7bb40ccb50c32b30b2721709e663cf4c3597b803e127ac4c3</td></tr>
+                </tbody>
+            </table>
+            <div class="hash-caveat">
+                ⚠️ <strong>Aviso metodológico:</strong> Os hashes acima foram calculados a partir dos ficheiros-fonte antes da fusão no monólito. O hash deste ficheiro HTML consolidado é diferente e deve ser calculado externamente com <code>sha256sum index_v13.12.3_PRO_FINAL.html</code>. A verificação de integridade de software pericial requer observador independente externo ao sistema sob análise (ISO/IEC 27037:2012 §7.3).
+            </div>
+            <div style="margin-top:1rem;">
+                <h3 style="font-size:0.78rem; color:#94a3b8; text-transform:uppercase; margin-bottom:0.5rem;">Hash de Sessão (Referência Local)</h3>
+                <div class="hash-live" id="arch-session-hash">Sem sessão activa</div>
+            </div>
+        </div>
+
+        <!-- SECÇÃO 5: QR Code -->
+        <div class="arch-section">
+            <h3>5. QR Code de Metadados de Sessão</h3>
+            <p style="font-size:0.75rem; color:var(--c-text-muted); margin-bottom:0.5rem; line-height:1.5;">Contém: CaseID + Timestamp + Hash de Sessão + Raiz Merkle. Permite verificação rápida de metadados por terceiro. <strong>Não constitui prova pericial independente.</strong></p>
+            <div id="qr-container">
+                <div id="qr-code-div"></div>
+                <span style="font-size:0.72rem; color:var(--c-text-muted);" id="qr-label">Inicie uma sessão para gerar o QR Code.</span>
+            </div>
+        </div>
+
+        <!-- SECÇÃO 6: Normas -->
+        <div class="arch-section" style="margin-bottom:0;">
+            <h3>6. Referências Normativas Aplicadas no Design</h3>
+            <p style="font-size:0.75rem; color:var(--c-text-muted); margin-bottom:0.5rem; line-height:1.5;">Referência de design — <strong>não equivale a certificação de conformidade</strong>.</p>
+            <div class="norm-badges">
+                <span class="norm-badge nb-blue">📋 ISO/IEC 27037:2012</span>
+                <span class="norm-badge nb-blue">📋 NIST SP 800-86</span>
+                <span class="norm-badge nb-blue">📋 NIST FIPS 180-4</span>
+                <span class="norm-badge nb-green">⚖️ Art. 327.º CPP (Contraditório)</span>
+                <span class="norm-badge nb-green">⚖️ Art. 125.º CPP (Perícia)</span>
+                <span class="norm-badge nb-green">⚖️ Art. 119.º / 103.º RGIT</span>
+                <span class="norm-badge nb-amber">🇪🇺 DAC7 (UE) 2021/514</span>
+                <span class="norm-badge nb-amber">🇪🇺 DORA (UE) 2022/2554</span>
+                <span class="norm-badge nb-amber">🇪🇺 eIDAS 2.0 (Selective Disclosure)</span>
+            </div>
+        </div>
+
+        <div style="margin-top:1.5rem; display:flex; gap:0.75rem; justify-content:flex-end;">
+            <button class="btn btn-neutral" onclick="EXPORT.exportArchReport()">💾 Exportar Relatório (HTML)</button>
+            <button class="btn btn-neutral" onclick="UI.closeArchModal()">✕ Fechar</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ SCRIPTS ══ -->
+<script>
+'use strict';
+
+/* ============================================================================
+   BLOCO 1: ENGINE — BASE DE DADOS DE 50 QUESTÕES
+   SHA-256 fonte: 95f9c90b7d36b889907ecf9feb6bc6d13b3769908f3c7cf449d741a24b5c31a5
+   ============================================================================ */
+(function _installLegalTacticsEngine(root) {
+    if (root.UNIFED_LEGAL_TACTICS && root.UNIFED_LEGAL_TACTICS._INSTALLED) return;
+
+    const LEGAL_QUESTIONS_DATABASE = Object.freeze({
+        eixo_a: [
+            { id:'A01', categoria:'Cadeia de Custódia', prioridade:'CRÍTICO', norma:'ISO/IEC 27037:2012 · Art. 125.º CPP', questao:'Pode o perito forense demonstrar que a cadeia de custódia dos dados brutos (ficheiros .pdf, .csv, extractos API) foi mantida em conformidade com ISO/IEC 27037:2012, incluindo registro imutável de todos os acessos?', implicacao:'Falha na custódia compromete toda a perícia (Art. 125.º CPP).', contraditorio:'Se não há prova de isolamento físico ou lógico dos dados durante análise, a integridade é questionável.' },
+            { id:'A02', categoria:'Timestamping Criptográfico', prioridade:'CRÍTICO', norma:'RFC 3161 · ISO 8601', questao:'Os ficheiros foram submetidos a timestamping criptográfico (RFC 3161) com servidor de tempo autenticado (NTP NIST ou similar) antes de qualquer análise computacional?', implicacao:'Timestamps não autenticados permitem objeção quanto à originalidade temporal.', contraditorio:'Data do sistema operativo não é prova de data real (pode ser alterada pelo utilizador).' },
+            { id:'A03', categoria:'Integridade de Dados', prioridade:'CRÍTICO', norma:'ISO/IEC 27037 · NIST SP 800-160', questao:'Qual é o valor SHA-256 hash dos dados brutos originais, e este foi confirmado independentemente por perito contra-nomeado antes de qualquer processamento?', implicacao:'Hash é fundamento de integridade em perícia informática.', contraditorio:'Se só o perito tem hash, não há validação independente (violação de contraditório).' },
+            { id:'A04', categoria:'Transformações de Dados', prioridade:'ALTO', norma:'Art. 125.º CPP · Art. 327.º CPP', questao:'Foram os dados submetidos a transformação (parsing, limpeza, enriquecimento) antes do cálculo de hashes integrais? Se sim, qual foi a sequência exacta de operações?', implicacao:'Qualquer transformação não documentada invalida a cadeia de custódia.', contraditorio:'Se o UNIFED processou dados sem registro de transformações, há lacuna crítica.' },
+            { id:'A05', categoria:'Logs de Acesso', prioridade:'ALTO', norma:'ISO/IEC 27037 · DORA (UE) 2022/2554', questao:'Qual é o log completo de modificações (create, read, update, delete) sobre cada ficheiro de dados, com timestamps e identificação de utilizador/processo?', implicacao:'Lacunas no log podem indicar manipulação não documentada.', contraditorio:'Log vazio ou genérico invalida análise forense (DORA art. 10).' },
+            { id:'A06', categoria:'Validação de Fonte', prioridade:'CRÍTICO', norma:'Art. 74 LGT · DAC7 Art. 8ac.º', questao:'Pode o perito confirmar que os dados PDF de extractos bancários foram obtidos directamente da instituição financeira autorizada (não via terceiros)?', implicacao:'Extractos falsificados invalidam toda a perícia.', contraditorio:'Se o PDF veio de email do interessado (não da instituição), é prova de segundo grau.' },
+            { id:'A07', categoria:'Isolamento Forense', prioridade:'ALTO', norma:'NIST SP 800-86 · ISO/IEC 27037', questao:'O ambiente de análise (máquina virtual, contentor, SO) foi isolado de redes externas durante toda a perícia? Qual foi o sistema operativo e versão?', implicacao:'Máquina conectada à internet pode ter sido comprometida (injeção de código).', contraditorio:'Sem isolamento provado, não há garantia de que dados não foram alterados por malware.' },
+            { id:'A08', categoria:'Transparência Algorítmica', prioridade:'CRÍTICO', norma:'Art. 125.º CPP · DORA Art. 10', questao:'Qual é o código-fonte completo (v1.0 com comentários) do algoritmo UNIFED utilizado, incluindo todas as funções de parsing, validação e cálculo?', implicacao:'Algoritmo "caixa negra" invalida contraditório técnico.', contraditorio:'Se o código não foi divulgado, a contraparte não pode verificar lógica (Art. 327.º CPP).' },
+            { id:'A09', categoria:'Validação Independente', prioridade:'ALTO', norma:'Art. 327.º CPP · Art. 125.º CPP', questao:'Foi o algoritmo UNIFED testado com dados de referência conhecidos (test vectors) para validar exactidão de cálculos antes da análise do caso?', implicacao:'Sem validação prévia, não há garantia de funcionamento correcto.', contraditorio:'Desvios em test vectors indicam bug crítico no motor.' },
+            { id:'A10', categoria:'Documentação Forense', prioridade:'CRÍTICO', norma:'Art. 125.º CPP · ISO/IEC 27037', questao:'Existe relatório técnico detalhado descrevendo cada passo da análise, com screenshots de outputs intermediários e explicação de cada decisão metodológica?', implicacao:'Relatório incompleto impede avaliação de conformidade.', contraditorio:'Se há saltos explicativos, contraparte não pode refutar lógica (Art. 327.º CPP).' }
+        ],
+        eixo_b: [
+            { id:'B01', categoria:'Triangulação DAC7', prioridade:'CRÍTICO', norma:'DAC7 (UE) 2021/514 · Art. 87.º-A LGT', questao:'O perito reconciliou os dados com o relatório DAC7 reportado pela plataforma à AT? Se houve discrepância, qual foi o delta e como foi explicado?', implicacao:'DAC7 é fonte oficial; discrepâncias indicam potencial omissão declarativa.', contraditorio:'Se a AT recebeu valores diferentes via DAC7, o SAF-T pode estar incompleto.' },
+            { id:'B02', categoria:'Limiar DAC7', prioridade:'ALTO', norma:'DAC7 Art. 8ac.º · Art. 87.º-A LGT', questao:'O perito confirmou que a plataforma teve obrigação de reportar via DAC7 neste período? (Limiar: ≥ €2.000 em actividade TVDE anual ou ≥ €3.000 em outras plataformas)', implicacao:'Se limiar foi atingido e DAC7 não foi reportado, há suspeita de evasão.', contraditorio:'Ausência de DAC7 quando obrigatório é indício de ocultação.' },
+            { id:'B03', categoria:'SAF-T vs Declaração', prioridade:'CRÍTICO', norma:'Art. 37.º RGIT · Lei n.º 45/2018 (AMT)', questao:'O valor "Base Bruta" declarado no SAF-T corresponde exactamente aos fluxos financeiros brutos reportados via API ou extractos PDF? Se houve diferença, qual foi a causa?', implicacao:'Delta entre SAF-T e fluxos reais indica potencial falsificação de registos.', contraditorio:'Reconciliação manual pode revelar omissões sistemáticas.' },
+            { id:'B04', categoria:'Períodos Parciais', prioridade:'ALTO', norma:'Art. 87.º-A LGT · RGIT Art. 37.º', questao:'Se o período analisado é parcial, o perito extrapolou para 12 meses? Se sim, qual foi a fórmula utilizada e foi validada a sazonalidade?', implicacao:'Extrapolação linear pode distorcer se houver sazonalidade.', contraditorio:'Projeção sem validação de tendência é metodologicamente fraca.' },
+            { id:'B05', categoria:'Plataformas Múltiplas', prioridade:'CRÍTICO', norma:'DAC7 Art. 8ac.º · Art. 89.º-A LGT', questao:'O interessado operou em múltiplas plataformas? Se sim, o perito consolidou os fluxos globais ou analisou isoladamente por plataforma?', implicacao:'Actividade fragmentada em plataformas pode mascarar omissão agregada.', contraditorio:'Se análise foi por plataforma isolada, há risco de omissão cruzada.' },
+            { id:'B06', categoria:'Cronologia Declarativa', prioridade:'ALTO', norma:'Art. 74 LGT · Art. 37.º RGIT', questao:'Qual foi a data de apresentação do SAF-T à AT? Houve declarações provisórias seguidas de declarações retificativas?', implicacao:'Retificações frequentes podem indicar falta de controlo sobre registos.', contraditorio:'Padrão de "erro corrigido" repetido sugere incompetência ou dolo.' },
+            { id:'B07', categoria:'Gaps Temporais', prioridade:'CRÍTICO', norma:'ISO/IEC 27037 · Art. 125.º CPP', questao:'O perito detectou "silêncio algorítmico" (gap temporal ≥ μ + 2.576σ) em séries de transações?', implicacao:'Gaps anómalos podem indicar que transações foram intencionalmente omitidas.', contraditorio:'Se há 3+ dias sem movimentos numa conta operacional, há suspeita de esconder fluxos.' },
+            { id:'B08', categoria:'Rubricas de Receita', prioridade:'ALTO', norma:'CIVA · Art. 75.º-B RGIT', questao:'O perito diferenciou correctamente entre: (i) receitas sujeitas a IVA 23%; (ii) receitas sujeitas a IVA 6% (Verba 2.18 CIVA); (iii) receitas isentas (gorjetas P2P)?', implicacao:'Classificação errada de receitas altera base tributável.', contraditorio:'Se perito misturou rubricas, os cálculos de IVA estão comprometidos.' },
+            { id:'B09', categoria:'Deduções & Abatimentos', prioridade:'ALTO', norma:'Art. 74 LGT · Art. 50.º RGIT', questao:'Quais foram os critérios utilizados para separar "Despesas Legítimas" de "Fluxos Não-Tributáveis"?', implicacao:'Critério fraco permite manipulação de base tributável.', contraditorio:'Se classificação não está fundada em comprovativo, é mera opinião.' },
+            { id:'B10', categoria:'Validação de Comprovativos', prioridade:'CRÍTICO', norma:'Art. 74 LGT · DORA Art. 10', questao:'Para cada dedução > €100, o perito exigiu comprovativo original (fatura, recibo, extrato bancário) ou aceitou declaração verbal/screenshot?', implicacao:'Screenshots podem ser falsificadas; só documentos autênticos valem.', contraditorio:'Se deduções não foram validadas, base tributável é especulativa.' }
+        ],
+        eixo_c: [
+            { id:'C01', categoria:'Nexus-Zero: Gorjetas', prioridade:'CRÍTICO', norma:'Art. 6.º CIVA · Lei n.º 45/2018 (AMT)', questao:'Como o perito garantiu que fluxos classificados como "Gorjetas" foram realmente transferências P2P diretas do cliente para o motorista, sem intermediação da plataforma?', implicacao:'Se plataforma processou gorjeta, é receita tributável; se foi P2P, é isenta.', contraditorio:'Sem comprovativo de P2P direto (transferência bancária, depósito em espécie), classificação é suspeita.' },
+            { id:'C02', categoria:'Nexus-Zero: Gorjetas', prioridade:'CRÍTICO', norma:'Art. 38.º RGIT · Circular AT n.º 1/2023', questao:'O perito tem evidência de que o cliente aceitou receber gorjeta em cash/transferência directa sem registo na plataforma?', implicacao:'Gorjeta isenta requer aceitação explícita do cliente fora da app.', contraditorio:'Se gorjeta aparece na app (mesmo como "nota de cliente"), é receita da plataforma.' },
+            { id:'C03', categoria:'Nexus-Zero: Portagens', prioridade:'CRÍTICO', norma:'Código da Estrada · Art. 50.º RGIT', questao:'Fluxos classificados como "Portagens" — foram realmente custos de portagem/combustível, ou incluem margem de lucro disfarçada?', implicacao:'Reembolso de custo é não-tributável; margem de lucro é receita.', contraditorio:'Se tarifa de portagem foi €1,50 mas motorista cobrou €2,00, delta de €0,50 é receita omitida.' },
+            { id:'C04', categoria:'Nexus-Zero: Portagens', prioridade:'ALTO', norma:'Art. 20.º RGIT · Art. 74 LGT', questao:'O perito exigiu comprovativo de cada portagem (talão Via Verde, recibo de portagem electrónica)?', implicacao:'Portagens não-comprovadas são potencialmente receita dissimulada.', contraditorio:'Se perito aceitou lote estimado sem validação de amostra, é negligência.' },
+            { id:'C05', categoria:'Nexus-Zero: Campanhas', prioridade:'ALTO', norma:'Art. 6.º CIVA · Lei n.º 45/2018', questao:'Fluxos classificados como "Campanhas" ou "Bónus Plataforma" — foram realmente ofertas não-tributáveis da plataforma, ou corresponderam a trabalho executado?', implicacao:'Bónus por desempenho é receita; bónus incondicional pode ser não-tributável.', contraditorio:'Se bónus foi condicionado a "realizar 10 viagens", é receita por serviço.' },
+            { id:'C06', categoria:'Nexus-Zero: Comissão', prioridade:'CRÍTICO', norma:'Art. 119.º RGIT · Art. 103.º RGIT', questao:'O algoritmo UNIFED aplicou taxa de comissão a fluxos que a plataforma declarou como não-sujeitos? Se sim, qual é a justificação técnica?', implicacao:'Aplicar comissão a fluxos isentos é erro metodológico com implicações fiscais.', contraditorio:'Se UNIFED disse "€1.000 em gorjetas" mas cobrou comissão sobre €1.000, há erro crítico.' },
+            { id:'C07', categoria:'Nexus-Zero: Validação Cruzada', prioridade:'CRÍTICO', norma:'DAC7 · Art. 87.º-A LGT', questao:'O perito comparou a classificação UNIFED de fluxos isentos com o que a própria plataforma reportou via DAC7 à AT? Houve discrepância?', implicacao:'Se UNIFED classifica diferente de DAC7, há potencial contradição.', contraditorio:'Se AT recebeu "€5.000 gorjetas" mas UNIFED diz "€3.500", alguém mentiu.' },
+            { id:'C08', categoria:'Nexus-Zero: Margem de Erro', prioridade:'ALTO', norma:'ISO/IEC 27037 · Art. 125.º CPP', questao:'Qual é a margem de erro declarada para a classificação de fluxos em categorias?', implicacao:'Sem margem de erro, conclusões sobre pequenos volumes são especulativas.', contraditorio:'Se margem é ±15% e discrepância é €500, a verdade está em intervalo €425-€575.' },
+            { id:'C09', categoria:'Nexus-Zero: Padrão Histórico', prioridade:'ALTO', norma:'Art. 87.º-A LGT · Art. 89.º-A RGIT', questao:'O interessado tinha histórico declarativo anterior? Se sim, qual foi a comparação ano-a-ano de proporção de "fluxos isentos"?', implicacao:'Mudança brusca de padrão (ex: gorjetas subitamente 40% do total) é suspeita.', contraditorio:'Se padrão é consistente historicamente, classificação é mais credível.' },
+            { id:'C10', categoria:'Nexus-Zero: T&C Plataforma', prioridade:'CRÍTICO', norma:'Art. 38.º RGIT · Lei n.º 45/2018', questao:'Qual é a política oficial da plataforma sobre retenção de gorjetas/portagens? O perito tem evidência de que motorista negociou diferente com clientes?', implicacao:'Se plataforma absorve "gorjetas" (mantém comissão), não são realmente isentas.', contraditorio:'Se T&C da plataforma dizem "plataforma retém 15% de gorjeta", então é receita da plataforma.' }
+        ],
+        eixo_d: [
+            { id:'D01', categoria:'Acurácia do Algoritmo', prioridade:'CRÍTICO', norma:'DORA (UE) 2022/2554 · Art. 125.º CPP', questao:'Qual é a taxa de erro conhecida do algoritmo UNIFED (precision, recall, F1-score) testada em dados de referência externa?', implicacao:'Sem validação de acurácia, não há garantia de confiabilidade.', contraditorio:'Se F1-score < 0.85, o algoritmo falha mais que acerta em casos borderline.' },
+            { id:'D02', categoria:'Robustez a Erros', prioridade:'CRÍTICO', norma:'ISO/IEC 27037 · NIST SP 800-160', questao:'O perito testou o UNIFED com dados intencionalmente corrompidos (injeção de erro) para confirmar que detecta anomalias?', implicacao:'Se algoritmo não detecta erros injetados, é inútil como validador.', contraditorio:'Teste de "canário" negativo é obrigatório em perícia informática.' },
+            { id:'D03', categoria:'Colisões de Hash', prioridade:'CRÍTICO', norma:'RFC 6234 · NIST FIPS 180-4', questao:'Pode ocorrer colisão de hash SHA-256 no universo de dados analisados? Como o perito mitigou este risco?', implicacao:'Colisão, embora rara, invalida assunção de unicidade.', contraditorio:'Se dataset tem >100M registos, probabilidade teórica de colisão é não-negligível.' },
+            { id:'D04', categoria:'Dependências de Terceiros', prioridade:'ALTO', norma:'DORA Art. 10 · Art. 125.º CPP', questao:'O UNIFED tem dependências de bibliotecas de terceiros? Se sim, qual é a versão e foram auditadas para vulnerabilidades (CVE)?', implicacao:'Dependência não-auditada pode conter malware ou bug crítico.', contraditorio:'Se usa biblioteca desatualizada com CVE conhecida, perícia é comprometida.' },
+            { id:'D05', categoria:'Parametrização', prioridade:'ALTO', norma:'Art. 125.º CPP · ISO/IEC 27037', questao:'Quais são os parâmetros exactos configurados no UNIFED (ex: threshold de discrepância, k-factor em detecção de anomalias)? Foram justificados cientificamente?', implicacao:'Se parâmetros são hardcoded arbitrariamente, resultados são questionáveis.', contraditorio:'Se k=2 foi arbitrariamente escolhido (não k=1.96 ou k=3), há espaço para crítica.' },
+            { id:'D06', categoria:'Enriquecimento de Dados', prioridade:'ALTO', norma:'Art. 125.º CPP · Art. 327.º CPP', questao:'Se o UNIFED aplicou "enriquecimento de dados" (fusão de fontes, preenchimento de lacunas), qual foi o código responsável e como foi validado?', implicacao:'Enriquecimento não-documentado pode ser manipulação inadvertida.', contraditorio:'Se perito "completou" dados em branco, pode ter inventado valores.' },
+            { id:'D07', categoria:'Análise de Sensibilidade', prioridade:'ALTO', norma:'NIST SP 800-160 · ISO/IEC 27037', questao:'O perito realizou análise de sensibilidade? (ex: "se X variar ±10%, como varia a conclusão final?")', implicacao:'Sem análise de sensibilidade, não se sabe robustez de conclusões.', contraditorio:'Se conclusão muda drasticamente com ±5% de variação, é frágil.' },
+            { id:'D08', categoria:'Benchmark Externo', prioridade:'ALTO', norma:'Art. 125.º CPP · DORA Art. 10', questao:'O UNIFED foi comparado com outras metodologias forenses (ex: reconciliação manual, software concorrente)?', implicacao:'Sem benchmark externo, não há validação de qualidade relativa.', contraditorio:'Se outro software retorna valor diferente, qual é correcto?' },
+            { id:'D09', categoria:'Reprodutibilidade', prioridade:'CRÍTICO', norma:'NIST SP 800-89 · Art. 125.º CPP', questao:'Se perito-contra nomeado executar o UNIFED com exactos mesmos inputs, obtém resultado idêntico (reprodutibilidade 100%)?', implicacao:'Resultados não-reprodutíveis invalidam perícia.', contraditorio:'Se há variabilidade aleatória, deve ser documentada e quantificada.' },
+            { id:'D10', categoria:'Documentação de Design', prioridade:'CRÍTICO', norma:'ISO/IEC 27037 · DORA Art. 10', questao:'Existe documentação de design (diagramas UML, flowcharts) explicando fluxo lógico do UNIFED e decisões algorítmicas?', implicacao:'Código sem documentação é "caixa negra" e permite questionamento total.', contraditorio:'Se perito não consegue explicar lógica em 10 minutos, é sinal de problema.' }
+        ],
+        eixo_e: [
+            { id:'E01', categoria:'Art. 119.º RGIT', prioridade:'CRÍTICO', norma:'Art. 119.º RGIT · Art. 103.º RGIT', questao:'A discrepância detectada configura "omissão continuada" (>18 meses de prática) ou é infracção isolada (Art. 119.º vs Art. 100.º)?', implicacao:'Omissão continuada agrava responsabilidade fiscal e pode abrir via penal.', contraditorio:'Se actividade começou há 2 meses, não há "continuação".' },
+            { id:'E02', categoria:'Limiar Penal', prioridade:'CRÍTICO', norma:'Art. 103.º RGIT · Art. 103.º CPP', questao:'Qual é o valor da coima de contravenção (Art. 119.º RGIT) vs possível agravamento penal (Art. 103.º CPP — fraude fiscal)?', implicacao:'€2.000+ em omissão pode cruzar para responsabilidade penal.', contraditorio:'Se montante é <€10.000, via penal é improvável (Art. 103.º CPP tem limiar).' },
+            { id:'E03', categoria:'Dolo vs Negligência', prioridade:'CRÍTICO', norma:'Art. 103.º CPP · CC Art. 219.º', questao:'Qual é a intenção do arguido? Prova o perito dolo (omissão intencional) ou culpa (negligência)? Como se diferencia?', implicacao:'Dolo agrava para crime; negligência fica em contravenção.', contraditorio:'Se há prova de ignorância genuína, é defesa válida contra dolo.' },
+            { id:'E04', categoria:'Aconselhamento Profissional', prioridade:'ALTO', norma:'CC Art. 219.º · Art. 103.º CPP', questao:'O perito investigou se arguido recebeu orientação de advogado/contabilista sobre obrigações?', implicacao:'Alegado "não sabia" é fraca defesa se teve aconselhamento profissional.', contraditorio:'Contudo, conselho errado do contabilista pode ser circunstância atenuante.' },
+            { id:'E05', categoria:'Prescrição', prioridade:'ALTO', norma:'Art. 37.º LGT · Art. 128.º RGIT', questao:'Quando começou a omissão (data primeira viagem)? Está dentro do prazo de prescrição (4 anos geral, 6 anos crime)?', implicacao:'Se >6 anos passaram, infracção está prescrita.', contraditorio:'Se perícia é de 2024 mas actividade foi 2018, prescrição pode aplicar.' },
+            { id:'E06', categoria:'Reincidência', prioridade:'ALTO', norma:'Art. 105.º RGIT · Art. 103.º CPP', questao:'Qual é a conduta prévia do arguido (reincidência em infracção fiscal)? Isto agrava a coima em 50%–100%.', implicacao:'Reincidente enfrenta agravação substancial.', contraditorio:'Se primeira infracção, coima é base; sem histórico é argumento de defesa.' },
+            { id:'E07', categoria:'Conformidade Voluntária', prioridade:'ALTO', norma:'Lei n.º 45/2018 (AMT) Art. 5.º · RGIT Art. 96.º-A', questao:'Arguido apresentou declaração rectificativa voluntária (com juros e multa reduzida) após detecção?', implicacao:'Rectificação voluntária reduz drasticamente consequências (até 50% de redução).', contraditorio:'Se arguido confessou e regulou antes de julgamento, responsabilidade é minimizada.' },
+            { id:'E08', categoria:'Causas de Exclusão', prioridade:'ALTO', norma:'CC Art. 31.º · Art. 103.º CPP', questao:'Qual é a "culpabilidade" do arguido? Há causa de exclusão (erro escusável sobre a lei, incapacidade de agir)?', implicacao:'Erro escusável pode ser fundamento de impunidade.', contraditorio:'Se arguido prova que confiou em expert contabilista, pode invocar Art. 31.º CC.' },
+            { id:'E09', categoria:'Obstáculos Técnicos', prioridade:'ALTO', norma:'Lei n.º 45/2018 · RGIT Art. 96.º-A', questao:'Tinha arguido dificuldade de acesso a informação (ex: API da plataforma não funcionava)? Isto é circunstância que releva de responsabilidade?', implicacao:'Obstáculo técnico pode ser atenuante se comprovado.', contraditorio:'Se plataforma falhou durante período crítico, AT tem responsabilidade parcial.' },
+            { id:'E10', categoria:'Graduação de Coimas', prioridade:'ALTO', norma:'Art. 119.º RGIT · Art. 122.º RGIT', questao:'Qual é a coima final proposta (€500-€2.000 base x agravantes/atenuantes)? Está dentro dos limites e criteriosamente justificada?', implicacao:'Coima arbitrária ou excessiva é questionável em contraditório.', contraditorio:'Se coima máxima é invocada, argumentar por coima menor com base em Art. 96.º-A.' }
+        ]
+    });
+
+    class LegalTacticsEngine {
+        constructor() {
+            this.database = LEGAL_QUESTIONS_DATABASE;
+            this.totalQuestions = 50;
+        }
+        getQuestionsByEixo(eixo) { return (this.database['eixo_' + eixo.toLowerCase()] || []).slice(); }
+        getAllQuestions() {
+            const all = [];
+            ['a','b','c','d','e'].forEach(e => all.push(...this.getQuestionsByEixo(e)));
+            return all;
+        }
+        getQuestionsByPrioridade(p) { return this.getAllQuestions().filter(q => q.prioridade === p); }
+        generateGuiaoAudiencia(selectedIds, meta) {
+            const all = this.getAllQuestions();
+            const selecionadas = all.filter(q => selectedIds.includes(q.id));
+            return Object.freeze({
+                metadata: {
+                    titulo: 'GUIÃO TÉCNICO DE AUDIÊNCIA — APOIO AO MANDATÁRIO',
+                    aviso: 'GUIÃO GERADO POR SISTEMA AUTOMÁTICO — REQUER VALIDAÇÃO PERICIAL',
+                    data_geracao: new Date().toISOString(),
+                    case_id: meta.caseId || 'CASE-????',
+                    mandatario: meta.mandatario || '—',
+                    periodo: meta.periodo || 'Período não especificado',
+                    entidade: meta.entidade || '—'
+                },
+                questoes_selecionadas: selecionadas,
+                total_selecionadas: selecionadas.length,
+                distribuicao_eixos: {
+                    A: selecionadas.filter(q => q.id.startsWith('A')).length,
+                    B: selecionadas.filter(q => q.id.startsWith('B')).length,
+                    C: selecionadas.filter(q => q.id.startsWith('C')).length,
+                    D: selecionadas.filter(q => q.id.startsWith('D')).length,
+                    E: selecionadas.filter(q => q.id.startsWith('E')).length
+                }
+            });
+        }
+    }
+
+    const ENGINE_INSTANCE = new LegalTacticsEngine();
+    Object.defineProperty(root, 'UNIFED_LEGAL_TACTICS', {
+        value: Object.freeze({ _INSTALLED: true, _VERSION: '1.0.0', getInstance: () => ENGINE_INSTANCE }),
+        writable: false, configurable: false, enumerable: true
+    });
+    console.log('[ENGINE] ✅ Motor de 50 questões instalado. v13.12.3-PRO-RC1.');
+})(window);
+
+
+/* ============================================================================
+   BLOCO 2: MOTOR MERKLE SHA-256 (INOVAÇÃO v13.12.3-PRO)
+   Selective Disclosure compatible (eIDAS 2.0 / EUDI Wallet Architecture)
+   ============================================================================ */
+const MERKLE = {
+    async hashNode(data) {
+        try {
+            const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(data));
+            return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+        } catch(e) {
+            return 'HASH-UNAVAILABLE-' + Date.now();
+        }
+    },
+
+    async computeLeaves(questions) {
+        const all = window.UNIFED_LEGAL_TACTICS.getInstance().getAllQuestions();
+        const selected = all.filter(q => questions.has(q.id));
+        const leaves = await Promise.all(
+            selected.map(q => this.hashNode(q.id + '|' + q.questao))
+        );
+        return { leaves, ids: selected.map(q => q.id) };
+    },
+
+    async buildTree(leaves) {
+        if (!leaves || leaves.length === 0) return null;
+        if (leaves.length === 1) return leaves[0];
+        let level = [...leaves];
+        while (level.length > 1) {
+            const next = [];
+            for (let i = 0; i < level.length; i += 2) {
+                const left = level[i];
+                const right = level[i+1] || left;
+                next.push(await this.hashNode(left + right));
+            }
+            level = next;
+        }
+        return level[0];
+    },
+
+    async computeRoot(selectedSet) {
+        const { leaves, ids } = await this.computeLeaves(selectedSet);
+        if (leaves.length === 0) return { root: null, leaves: [], ids: [] };
+        const root = await this.buildTree(leaves);
+        return { root, leaves, ids };
+    },
+
+    formatTreeDisplay(ids, leaves, root) {
+        if (!root) return '— sem questões seleccionadas —';
+        let out = `Nós folha (${ids.length} questões):\n`;
+        ids.forEach((id, i) => {
+            out += `  [${id}] ${leaves[i].substring(0,20)}…\n`;
+        });
+        out += `\nRaiz Merkle (Master Hash):\n  ${root}`;
+        return out;
+    }
+};
+
+
+/* ============================================================================
+   BLOCO 3: UTILITÁRIO CRIPTOGRÁFICO SHA-256 (SESSÃO)
+   ============================================================================ */
+async function computeSHA256(text) {
+    try {
+        const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+        return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+    } catch(e) {
+        return 'SHA256-UNAVAILABLE-' + Date.now();
+    }
+}
+
+
+/* ============================================================================
+   BLOCO 4: ESTADO DE SESSÃO (ZERO-FOOTPRINT)
+   Sem dados hardcoded. Tudo preenchido pelo utilizador na UI.
+   ============================================================================ */
+const SESSION = {
+    active: false,
+    caseId: null,
+    mandatario: null,
+    periodo: null,
+    entidade: null,
+    startedAt: null,
+    sessionKey: null,
+    sessionHash: null,
+    merkleRoot: null
+};
+
+
+/* ============================================================================
+   BLOCO 5: APP — GESTÃO DE SESSÃO
+   ============================================================================ */
+const APP = {
+    async initSession() {
+        const caseId = document.getElementById('inp-case-id').value.trim();
+        const mandatario = document.getElementById('inp-mandatario').value.trim();
+        const periodo = document.getElementById('inp-periodo').value.trim();
+        const entidade = document.getElementById('inp-entidade').value.trim();
+
+        if (!caseId) {
+            alert('⚠️ Introduza um Identificador de Processo válido.');
+            return;
+        }
+
+        SESSION.active = true;
+        SESSION.caseId = caseId;
+        SESSION.mandatario = mandatario || '—';
+        SESSION.periodo = periodo || 'Não especificado';
+        SESSION.entidade = entidade || '—';
+        SESSION.startedAt = new Date().toISOString();
+        SESSION.sessionKey = 'SESS-' + Date.now().toString(36).toUpperCase();
+
+        const payload = JSON.stringify({ caseId, mandatario, periodo, ts: SESSION.startedAt, key: SESSION.sessionKey });
+        SESSION.sessionHash = await computeSHA256(payload);
+
+        // Actualizar UI
+        document.getElementById('session-init').style.display = 'none';
+        const dash = document.getElementById('dashboard');
+        dash.style.display = 'flex';
+        document.getElementById('session-case-label').textContent = caseId;
+        document.getElementById('session-mandatario-label').textContent = SESSION.mandatario;
+        document.getElementById('session-periodo-label').textContent = SESSION.periodo;
+        document.getElementById('session-key-label').textContent = SESSION.sessionKey;
+        document.getElementById('session-indicator').textContent = '⬤ ' + SESSION.sessionKey;
+        document.getElementById('session-indicator').style.color = '#4ade80';
+        document.getElementById('btn-reset').style.display = 'block';
+
+        const hashSide = document.getElementById('session-hash-side');
+        hashSide.textContent = SESSION.sessionHash;
+
+        // Footer timestamp
+        document.getElementById('footer-ts').textContent = new Date().toLocaleString('pt-PT');
+
+        UI.renderAccordion();
+        await UI._updateMerkleAndHash();
+        console.log('[APP] Sessão iniciada:', SESSION.sessionKey);
+    },
+
+    resetSession() {
+        if (!confirm('Confirma o encerramento da sessão actual? Os dados não guardados perdem-se.')) return;
+        Object.assign(SESSION, { active:false, caseId:null, mandatario:null, periodo:null, entidade:null, startedAt:null, sessionKey:null, sessionHash:null, merkleRoot:null });
+        document.getElementById('session-init').style.display = 'flex';
+        document.getElementById('dashboard').style.display = 'none';
+        document.getElementById('session-indicator').textContent = '⬤ Sem sessão activa';
+        document.getElementById('session-indicator').style.color = 'var(--c-text-muted)';
+        document.getElementById('btn-reset').style.display = 'none';
+        document.getElementById('inp-case-id').value = '';
+        document.getElementById('inp-mandatario').value = '';
+        document.getElementById('inp-periodo').value = '';
+        document.getElementById('inp-entidade').value = '';
+        document.getElementById('master-hash-footer').textContent = '— iniciar sessão e seleccionar questões —';
+        document.getElementById('footer-ts').textContent = '—';
+        document.getElementById('merkle-root-display').textContent = '— sem questões seleccionadas —';
+        document.getElementById('session-hash-side').textContent = '— iniciar sessão —';
+        document.getElementById('q-count-badge').textContent = '0/50';
+        document.getElementById('q-count-main').textContent = '0';
+        UI.selectedQuestions.clear();
+        document.getElementById('accordion-container').innerHTML = '';
+        console.log('[APP] Sessão encerrada.');
+    }
+};
+
+
+/* ============================================================================
+   BLOCO 6: UI — ACORDEÃO, FILTROS E MERKLE UPDATE
+   ============================================================================ */
+const UI = {
+    selectedQuestions: new Set(),
+
+    renderAccordion(filterFn) {
+        const engine = window.UNIFED_LEGAL_TACTICS.getInstance();
+        const all = engine.getAllQuestions();
+        const questions = filterFn ? all.filter(filterFn) : all;
+        const container = document.getElementById('accordion-container');
+        container.innerHTML = '';
+
+        const eixoMeta = {
+            A: { label: '🔒 Eixo A — Cadeia de Custódia (ISO 27037)', color: '#3b82f6' },
+            B: { label: '📊 Eixo B — Triangulação DAC7 vs SAF-T', color: '#8b5cf6' },
+            C: { label: '⚔️ Eixo C — Nexus-Zero / Apropriação Indevida', color: '#f97316' },
+            D: { label: '🔧 Eixo D — Algoritmo & Falibilidade', color: '#06b6d4' },
+            E: { label: '⚖️ Eixo E — Art. 119.º RGIT / Responsabilidade', color: '#ef4444' }
+        };
+
+        ['A','B','C','D','E'].forEach(eixo => {
+            const qs = questions.filter(q => q.id.startsWith(eixo));
+            if (!qs.length) return;
+            const hdr = document.createElement('div');
+            hdr.className = 'eixo-header';
+            hdr.style.borderLeftColor = eixoMeta[eixo].color;
+            hdr.style.color = eixoMeta[eixo].color;
+            hdr.textContent = eixoMeta[eixo].label;
+            container.appendChild(hdr);
+
+            qs.forEach(q => {
+                const checked = this.selectedQuestions.has(q.id) ? 'checked' : '';
+                const prioClass = q.prioridade === 'CRÍTICO' ? 'critico' : 'alto';
+                const item = document.createElement('div');
+                item.className = 'pure-accordion-item';
+                item.id = 'acc-' + q.id;
+                item.innerHTML = `
+                    <div class="pure-accordion-header" onclick="UI.toggleAcc('${q.id}')">
+                        <input type="checkbox" class="pure-accordion-checkbox" id="cb-${q.id}" ${checked}
+                               onclick="event.stopPropagation(); UI.toggleQ('${q.id}')">
+                        <div class="pure-accordion-title">${q.id} — ${q.categoria}</div>
+                        <span class="pure-accordion-priority ${prioClass}">${q.prioridade === 'CRÍTICO' ? '🔴' : '🟠'} ${q.prioridade}</span>
+                        <span class="pure-accordion-toggle">▼</span>
+                    </div>
+                    <div class="pure-accordion-content">
+                        <div class="pure-question-text"><strong>Questão:</strong> ${q.questao}</div>
+                        <div class="pure-question-norma"><strong>Norma:</strong> ${q.norma}</div>
+                        <div class="pure-question-impl"><strong>⚠️ Implicação:</strong> ${q.implicacao}</div>
+                        <div class="pure-question-contra"><strong>🛡️ Contraditório:</strong> ${q.contraditorio}</div>
+                    </div>`;
+                container.appendChild(item);
+            });
+        });
+    },
+
+    toggleAcc(id) { document.getElementById('acc-' + id)?.classList.toggle('active'); },
+
+    async toggleQ(id) {
+        if (this.selectedQuestions.has(id)) {
+            this.selectedQuestions.delete(id);
+        } else {
+            this.selectedQuestions.add(id);
+        }
+        this._updateCounter();
+        await this._updateMerkleAndHash();
+    },
+
+    _updateCounter() {
+        const n = this.selectedQuestions.size;
+        document.getElementById('q-count-badge').textContent = n + '/50';
+        document.getElementById('q-count-main').textContent = n;
+        const stats = { A:0,B:0,C:0,D:0,E:0 };
+        this.selectedQuestions.forEach(id => { stats[id.charAt(0)]++; });
+        ['A','B','C','D','E'].forEach(e => {
+            const el = document.getElementById('st-' + e.toLowerCase());
+            if (el) el.textContent = stats[e] + '/10';
+        });
+    },
+
+    async _updateMerkleAndHash() {
+        const merkleRootEl = document.getElementById('merkle-root-display');
+        const masterHashEl = document.getElementById('master-hash-footer');
+        const merkleTreeModal = document.getElementById('merkle-tree-display');
+
+        if (this.selectedQuestions.size === 0) {
+            merkleRootEl.textContent = '— sem questões seleccionadas —';
+            masterHashEl.textContent = '— seleccionar questões para calcular —';
+            SESSION.merkleRoot = null;
+            if (merkleTreeModal) merkleTreeModal.textContent = '— sem questões seleccionadas —';
+            return;
+        }
+
+        const { root, leaves, ids } = await MERKLE.computeRoot(this.selectedQuestions);
+        SESSION.merkleRoot = root;
+
+        merkleRootEl.textContent = root ? root.substring(0,32) + '…' : '—';
+        masterHashEl.textContent = root || '—';
+        if (merkleTreeModal) merkleTreeModal.textContent = MERKLE.formatTreeDisplay(ids, leaves, root);
+    },
+
+    filterQ(priority) {
+        const fn = priority === 'ALL' ? null : (q => q.prioridade === priority);
+        this.renderAccordion(fn);
+        this.selectedQuestions.forEach(id => {
+            const cb = document.getElementById('cb-' + id);
+            if (cb) cb.checked = true;
+        });
+    },
+
+    async selectSmart() {
+        const engine = window.UNIFED_LEGAL_TACTICS.getInstance();
+        this.selectedQuestions.clear();
+        engine.getQuestionsByPrioridade('CRÍTICO').forEach(q => this.selectedQuestions.add(q.id));
+        this.filterQ('CRÍTICO');
+        this._updateCounter();
+        await this._updateMerkleAndHash();
+    },
+
+    async deselectAll() {
+        this.selectedQuestions.clear();
+        document.querySelectorAll('.pure-accordion-checkbox').forEach(cb => cb.checked = false);
+        this._updateCounter();
+        await this._updateMerkleAndHash();
+    },
+
+    openArchModal() {
+        const overlay = document.getElementById('arch-modal-overlay');
+        overlay.classList.add('visible');
+        document.getElementById('arch-timestamp').textContent = new Date().toLocaleString('pt-PT');
+
+        const hashEl = document.getElementById('arch-session-hash');
+        if (SESSION.sessionHash) {
+            hashEl.textContent = SESSION.sessionHash + '\n[Referência de sessão local — não é verificação pericial independente (ISO/IEC 27037:2012 §7.3)]';
+        } else {
+            hashEl.textContent = 'Sem sessão activa — inicie uma sessão para calcular.';
+        }
+
+        // Actualizar Merkle no modal
+        const merkleTreeModal = document.getElementById('merkle-tree-display');
+        if (merkleTreeModal && SESSION.merkleRoot) {
+            // já actualizado por _updateMerkleAndHash
+        } else if (merkleTreeModal) {
+            merkleTreeModal.textContent = '— sem questões seleccionadas —';
+        }
+
+        this._generateQR();
+    },
+
+    closeArchModal() { document.getElementById('arch-modal-overlay').classList.remove('visible'); },
+
+    _generateQR() {
+        const div = document.getElementById('qr-code-div');
+        const label = document.getElementById('qr-label');
+        div.innerHTML = '';
+
+        if (!SESSION.sessionHash) {
+            label.textContent = 'Sem sessão activa — inicie uma sessão para gerar QR Code.';
+            return;
+        }
+
+        const qrData = JSON.stringify({
+            sys: 'UNIFED-PROBATUM-v13.12.3-PRO',
+            case: SESSION.caseId,
+            ts: SESSION.startedAt,
+            sessionHash: SESSION.sessionHash,
+            merkleRoot: SESSION.merkleRoot || 'SEM-QUESTOES-SELECCIONADAS',
+            note: 'Referencia-local-nao-e-verificacao-pericial-independente'
+        });
+
+        try {
+            if (typeof QRCode !== 'undefined') {
+                new QRCode(div, {
+                    text: qrData,
+                    width: 168,
+                    height: 168,
+                    colorDark: '#000000',
+                    colorLight: '#ffffff',
+                    correctLevel: QRCode.CorrectLevel.M
+                });
+                label.textContent = 'QR Code contém: CaseID + Timestamp + Hash de Sessão + Raiz Merkle. Valor de referência local.';
+            } else {
+                div.textContent = '—';
+                label.textContent = 'Biblioteca QRCode não carregada (requer ligação à internet para CDN). CaseID: ' + SESSION.caseId + ' | Hash: ' + SESSION.sessionHash.substring(0,20) + '…';
+            }
+        } catch(e) {
+            label.textContent = 'Erro ao gerar QR: ' + e.message;
+        }
+    }
+};
+
+
+/* ============================================================================
+   BLOCO 7: EXPORTAÇÃO — GUIÃO HTML / RELATÓRIO ARQUITECTURA
+   ============================================================================ */
+const EXPORT = {
+    async exportPDF() {
+        if (UI.selectedQuestions.size === 0) {
+            alert('⚠️ Seleccione pelo menos uma questão para exportar.');
+            return;
+        }
+        if (!SESSION.active) {
+            alert('⚠️ É necessária uma sessão activa para exportar.');
+            return;
+        }
+
+        const engine = window.UNIFED_LEGAL_TACTICS.getInstance();
+        const meta = { caseId: SESSION.caseId, mandatario: SESSION.mandatario, periodo: SESSION.periodo, entidade: SESSION.entidade };
+        const guiao = engine.generateGuiaoAudiencia(Array.from(UI.selectedQuestions), meta);
+
+        // Calcular Merkle Root para o guião
+        const { root: merkleRoot, leaves, ids } = await MERKLE.computeRoot(UI.selectedQuestions);
+        const masterHash = merkleRoot || await computeSHA256(JSON.stringify(guiao));
+
+        const html = this._buildHTMLGuiao(guiao, masterHash, merkleRoot, leaves, ids);
+        const blob = new Blob([html], { type: 'text/html; charset=utf-8' });
+        const url  = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'GUIAO_AUDIENCIA_' + SESSION.caseId + '_' + new Date().toISOString().split('T')[0] + '.html';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        const st = document.getElementById('export-status');
+        st.style.display = 'block';
+        st.innerHTML = `<strong>✓ Guião exportado com sucesso</strong><br>
+            Ficheiro: <code>${a.download}</code><br>
+            Questões: ${guiao.total_selecionadas}/50 &nbsp;·&nbsp;
+            Eixos: A(${guiao.distribuicao_eixos.A}) B(${guiao.distribuicao_eixos.B}) C(${guiao.distribuicao_eixos.C}) D(${guiao.distribuicao_eixos.D}) E(${guiao.distribuicao_eixos.E})<br>
+            Master Hash (Raiz Merkle): <code style="font-size:0.68rem;">${masterHash}</code><br>
+            <em style="font-size:0.72rem;">Abra o ficheiro .html no browser → Ctrl+P → Guardar como PDF.</em>`;
+    },
+
+    _buildHTMLGuiao(guiao, masterHash, merkleRoot, leaves, ids) {
+        let qs = '';
+        guiao.questoes_selecionadas.forEach((q, i) => {
+            qs += `<div class="questao">
+                <div class="q-title">Q${i+1}: ${q.id} — ${q.categoria}</div>
+                <div class="q-field q-prio">[${q.prioridade}] — ${q.norma}</div>
+                <div class="q-field"><strong>Questão:</strong> ${q.questao}</div>
+                <div class="q-field q-impl"><strong>⚠️ Implicação:</strong> ${q.implicacao}</div>
+                <div class="q-field q-contra"><strong>🛡️ Contraditório:</strong> ${q.contraditorio}</div>
+            </div>`;
+        });
+
+        let merkleList = '';
+        if (ids && ids.length > 0) {
+            merkleList = ids.map((id, i) => `${id}: ${leaves[i].substring(0,20)}…`).join('\n');
+        }
+
+        return `<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="UTF-8">
+<title>Guião Técnico de Audiência — ${guiao.metadata.case_id}</title>
+<style>
+  body { font-family:'Segoe UI',sans-serif; max-width:900px; margin:0 auto; padding:20px; color:#1a1a1a; font-size:13px; }
+  h1 { color:#991b1b; text-align:center; border-bottom:2px solid #991b1b; padding-bottom:8px; font-size:20px; margin-bottom:4px; }
+  .aviso-ga { text-align:center; color:#666; font-style:italic; font-size:11px; margin-bottom:16px; }
+  .watermark { text-align:center; font-size:11px; font-weight:700; color:#991b1b; border:1px solid #991b1b; padding:6px 12px; border-radius:4px; margin:12px auto; max-width:500px; }
+  .meta { background:#f7f7f7; padding:12px 16px; border-radius:6px; margin-bottom:20px; display:grid; grid-template-columns:1fr 1fr; gap:6px 20px; font-size:12px; }
+  .meta strong { color:#333; }
+  .questao { page-break-inside:avoid; border-left:3px solid #991b1b; padding:12px 14px; margin:14px 0; background:#fafafa; border-radius:4px; }
+  .q-title { font-weight:700; color:#991b1b; margin-bottom:8px; font-size:13px; }
+  .q-field { margin:7px 0; font-size:12px; line-height:1.5; }
+  .q-prio { color:#555; font-style:italic; }
+  .q-impl { color:#7f1d1d; background:rgba(153,27,27,0.05); padding:6px 10px; border-radius:4px; }
+  .q-contra { color:#14532d; background:rgba(20,83,45,0.05); padding:6px 10px; border-radius:4px; }
+  .footer { margin-top:40px; border-top:2px solid #1a1a1a; padding-top:14px; font-size:10px; color:#333; font-family:monospace; text-align:center; line-height:1.7; }
+  .master-hash-block { margin-top:12px; padding:10px 14px; border:2px solid #991b1b; border-radius:6px; background:#fff; display:inline-block; }
+  .master-hash-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:#991b1b; margin-bottom:4px; }
+  .master-hash-value { font-family:monospace; font-size:12px; font-weight:700; color:#1a1a1a; word-break:break-all; }
+  .merkle-table { width:100%; border-collapse:collapse; font-size:10px; margin-top:10px; }
+  .merkle-table th { background:#eee; padding:4px 6px; text-align:left; }
+  .merkle-table td { padding:3px 6px; border-top:1px solid #ddd; font-family:monospace; }
+  @media print { body { padding:10mm; } .questao { page-break-inside:avoid; } }
+</style>
+</head>
+<body>
+<h1>GUIÃO TÉCNICO DE AUDIÊNCIA</h1>
+<p class="aviso-ga">Apoio ao Mandatário — Bateria de Contraditório UNIFED-PROBATUM v13.12.3-PRO</p>
+<div class="watermark">⚠️ GUIÃO GERADO POR SISTEMA AUTOMÁTICO — REQUER VALIDAÇÃO PERICIAL</div>
+<div class="meta">
+  <div><strong>Processo:</strong> ${guiao.metadata.case_id}</div>
+  <div><strong>Data de Geração:</strong> ${guiao.metadata.data_geracao.split('T')[0]}</div>
+  <div><strong>Mandatário/Ref.:</strong> ${guiao.metadata.mandatario}</div>
+  <div><strong>Período:</strong> ${guiao.metadata.periodo}</div>
+  <div><strong>Entidade/Tribunal:</strong> ${guiao.metadata.entidade}</div>
+  <div><strong>Total Questões:</strong> ${guiao.total_selecionadas}/50 &nbsp;·&nbsp; A:${guiao.distribuicao_eixos.A} B:${guiao.distribuicao_eixos.B} C:${guiao.distribuicao_eixos.C} D:${guiao.distribuicao_eixos.D} E:${guiao.distribuicao_eixos.E}</div>
+</div>
+<h2 style="font-size:15px; color:#1a1a1a; margin-bottom:12px;">Questões Seleccionadas</h2>
+${qs}
+<div class="footer">
+  <div class="master-hash-block">
+    <div class="master-hash-label">▊ Master Hash SHA-256 (Raiz Merkle)</div>
+    <div class="master-hash-value">${masterHash}</div>
+  </div>
+  <br>
+  ⚠️ GUIÃO GERADO POR SISTEMA AUTOMÁTICO — REQUER VALIDAÇÃO PERICIAL<br>
+  Este hash é a raiz Merkle calculada sobre as ${guiao.total_selecionadas} questões seleccionadas.<br>
+  Para validade pericial, requer verificação independente (ISO/IEC 27037:2012 §7.3).<br>
+  UNIFED-PROBATUM v13.12.3-PRO · Motor Lógico de Apoio ao Contraditório · Jurisdição PT-PT
+  <br><br>
+  <strong>Nós Folha Merkle:</strong><br>
+  <pre style="text-align:left; display:inline-block; font-size:9.5px;">${merkleList}</pre>
+</div>
+</body>
+</html>`;
+    },
+
+    exportArchReport() {
+        const content = document.getElementById('arch-modal').innerHTML;
+        const ts = new Date().toISOString().replace(/[:.]/g,'-').split('T');
+        const blob = new Blob([
+            `<!DOCTYPE html><html lang="pt-PT"><head><meta charset="UTF-8">
+            <title>Relatório de Estado e Arquitectura — UNIFED-PROBATUM</title>
+            <style>
+              body{font-family:'Segoe UI',sans-serif;max-width:860px;margin:0 auto;padding:20px;color:#222;font-size:13px;}
+              table{width:100%;border-collapse:collapse;font-size:12px;}
+              th{background:#eee;padding:6px 8px;text-align:left;}
+              td{padding:5px 8px;border-top:1px solid #ddd;}
+              .hash-cell{font-family:monospace;font-size:10px;word-break:break-all;color:#166534;}
+              svg{max-width:100%;}
+              button{display:none;}
+            </style>
+            </head><body>
+            <h1 style="font-size:18px; color:#1e3a5f;">🛡️ Relatório de Estado e Arquitectura</h1>
+            <p style="font-size:11px; color:#666;">UNIFED-PROBATUM v13.12.3-PRO · Exportado em: ${new Date().toLocaleString('pt-PT')}</p>
+            <hr>
+            ${content}
+            </body></html>`
+        ], { type: 'text/html; charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'RELATORIO_ARQUITECTURA_UNIFED_' + ts[0] + '_' + ts[1].substring(0,6) + '.html';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
+    }
+};
+
+// Timestamp inicial no rodapé
+document.getElementById('footer-ts').textContent = new Date().toLocaleDateString('pt-PT');
+
+console.log('[UNIFED-PROBATUM] ✅ v13.12.3-PRO-RC1 carregado. Zero-footprint. Motor Merkle SHA-256 activo. Layout Panorâmico 16:9.');
+</script>
+</body>
+</html>

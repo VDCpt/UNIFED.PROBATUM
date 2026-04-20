@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>UNIFED · PROBATUM · Painel Forense</title>
+    <style>
+        /* ========== ESTILOS COMPLETOS (MANTIDOS DO ORIGINAL) ========== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0a0c12;
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            padding: 2rem;
+            color: #e2e8f0;
+        }
+
+        .pure-container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .pure-section {
+            background: rgba(15, 20, 30, 0.65);
+            backdrop-filter: blur(2px);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            border: 1px solid rgba(66, 153, 225, 0.2);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        .pure-section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid rgba(255,255,255,0.15);
+            padding-bottom: 0.75rem;
+        }
+
+        .pure-section-title {
+            display: flex;
+            align-items: baseline;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .pure-badge-version {
+            background: #1e293b;
+            font-size: 0.7rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 20px;
+            letter-spacing: 0.5px;
+            color: #94a3b8;
+            font-family: monospace;
+        }
+
+        #pure-title-text {
+            font-weight: 600;
+            font-size: 1.1rem;
+            background: linear-gradient(135deg, #c084fc, #38bdf8);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        .pure-mono {
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 0.8rem;
+        }
+
+        .pure-session-badge {
+            background: #0f172a;
+            padding: 0.25rem 0.75rem;
+            border-radius: 30px;
+            display: flex;
+            gap: 0.5rem;
+            align-items: baseline;
+        }
+
+        .pure-label {
+            font-size: 0.7rem;
+            color: #7e8a9c;
+        }
+
+        .pure-card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
+            gap: 1.25rem;
+            margin: 1rem 0 0.5rem;
+        }
+
+        .pure-card {
+            background: rgba(10, 14, 23, 0.85);
+            backdrop-filter: blur(4px);
+            border-radius: 1.2rem;
+            padding: 1.2rem;
+            border: 1px solid rgba(71, 85, 105, 0.5);
+            transition: all 0.1s ease;
+        }
+
+        .pure-card-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 1rem;
+            color: #cbd5e6;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .pure-data-grid {
+            display: grid;
+            gap: 12px;
+        }
+
+        .pure-3col {
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        }
+
+        .pure-data-block {
+            background: rgba(255,255,255,0.02);
+            border-radius: 12px;
+            padding: 10px 12px;
+        }
+
+        .pure-data-label {
+            font-size: 0.7rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .pure-data-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin: 6px 0 2px;
+            font-family: monospace;
+        }
+
+        .pure-value-primary { color: #2dd4bf; }
+        .pure-value-warn { color: #f97316; }
+        .pure-value-neutral { color: #e2e8f0; }
+
+        .pure-card-alert {
+            border-left: 4px solid #ef4444;
+            background: rgba(239,68,68,0.05);
+        }
+
+        .pure-smoking-guns {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .pure-sg {
+            background: #0f1119;
+            border-radius: 12px;
+            padding: 12px;
+        }
+
+        .pure-sg-critical {
+            border-left: 3px solid #ef4444;
+        }
+
+        .pure-sg-label {
+            font-weight: 700;
+            font-size: 0.75rem;
+            margin-bottom: 8px;
+            color: #facc15;
+        }
+
+        .pure-sg-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            margin: 4px 0;
+        }
+
+        .pure-sg-delta {
+            margin-top: 8px;
+            padding-top: 6px;
+            border-top: 1px dashed #334155;
+            font-weight: 700;
+            display: flex;
+            gap: 12px;
+        }
+
+        .pure-delta-value { color: #ef4444; font-family: monospace; }
+        .pure-delta-pct { color: #f97316; font-size: 0.75rem; }
+
+        .pure-fiscal-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 1rem;
+            justify-content: space-between;
+        }
+
+        .pure-fiscal-item {
+            background: #00000030;
+            border-radius: 10px;
+            padding: 8px 12px;
+            flex: 1;
+            text-align: center;
+        }
+
+        /* zona cinzenta */
+        .pure-zc-intro {
+            font-size: 0.85rem;
+            background: #111827;
+            padding: 8px 12px;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+        }
+
+        .pure-zc-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px,1fr));
+            gap: 10px;
+        }
+
+        .pure-zc-item {
+            background: #0f172a;
+            border-radius: 12px;
+            padding: 8px 12px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .pure-zc-question {
+            margin-top: 1rem;
+            font-size: 0.8rem;
+            background: #1e1b2b;
+            padding: 10px;
+            border-radius: 12px;
+            border-left: 3px solid #facc15;
+        }
+
+        /* ATF e gráfico - inicialmente ocultos, mas mantidos */
+        #pureATFCard, #pureZonaCinzentaCard, .chart-section {
+            display: none;
+        }
+
+        .pure-btn-atf {
+            background: #1e293b;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 40px;
+            color: #a5f3fc;
+            font-family: monospace;
+            cursor: pointer;
+        }
+
+        /* ===== NOVA REGRA: FORÇAR HORIZONTALIDADE DOS BLOCOS DE EVIDÊNCIA ===== */
+        .pure-evidence-grid {
+            display: flex !important;
+            flex-direction: row !important;
+            flex-wrap: wrap !important;
+            gap: 1rem !important;
+        }
+
+        @media (max-width: 720px) {
+            body { padding: 1rem; }
+            .pure-card-grid { grid-template-columns: 1fr; }
+        }
+
+        /* ===== RET-PH: Horizontalidade forçada de todos os blocos de dados ===== */
+
+        /* Todos os cards ocupam largura máxima dentro do grid */
+        .pure-card-grid .pure-card {
+            width: 100% !important;
+            min-width: 0 !important;
+        }
+
+        /* Card I — RECONSTITUIÇÃO: forçar 3 colunas horizontais */
+        #pureFinancialCard {
+            grid-column: 1 / -1 !important;
+        }
+        #pureFinancialCard .pure-data-grid.pure-3col {
+            display: grid !important;
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 10px !important;
+        }
+
+        /* Card II — DISCREPÂNCIAS: fiscal-row e smoking guns horizontais */
+        #pureDiscCard {
+            grid-column: 1 / -1 !important;
+        }
+        .pure-smoking-guns {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            gap: 1rem !important;
+        }
+        .pure-fiscal-row {
+            display: flex !important;
+            flex-wrap: nowrap !important;
+            gap: 8px !important;
+        }
+        .pure-fiscal-item { flex: 1 !important; min-width: 0 !important; }
+
+        /* Metric cards dentro de DISCREPÂNCIAS */
+        #pureDiscCard > .pure-card-grid.pure-3col {
+            display: grid !important;
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 10px !important;
+            margin-top: 14px !important;
+        }
+
+        /* Card III — ATF horizontal */
+        #pureATFCard {
+            grid-column: 1 / -1 !important;
+        }
+        .pure-atf-grid {
+            display: grid !important;
+            grid-template-columns: repeat(4, 1fr) !important;
+            gap: 1rem !important;
+        }
+
+        /* Card IV — ZONA CINZENTA horizontal */
+        #pureZonaCinzentaCard {
+            grid-column: 1 / -1 !important;
+        }
+        .pure-zc-grid {
+            display: grid !important;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)) !important;
+            gap: 10px !important;
+        }
+
+        /* Card V — VEREDICTO horizontal */
+        #pureVerdictCard {
+            grid-column: 1 / -1 !important;
+        }
+        .pure-verdict-row {
+            display: flex !important;
+            flex-direction: row !important;
+            flex-wrap: wrap !important;
+            gap: 2rem !important;
+            align-items: center !important;
+        }
+        .pure-verdict-block, .pure-integrity-block {
+            flex: 1 !important;
+            min-width: 200px !important;
+        }
+
+        /* TRIANGULAÇÃO — 4 colunas forçadas */
+        .pure-4col {
+            display: grid !important;
+            grid-template-columns: repeat(4, 1fr) !important;
+            gap: 12px !important;
+        }
+
+        /* RISCO DE ASFIXIA FINANCEIRA — horizontal com valor em destaque */
+        #card-asfixia {
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            gap: 1.5rem !important;
+            flex-wrap: wrap !important;
+            grid-column: 1 / -1 !important;
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .pure-smoking-guns { grid-template-columns: 1fr !important; }
+            #pureFinancialCard .pure-data-grid.pure-3col { grid-template-columns: repeat(2, 1fr) !important; }
+            .pure-atf-grid { grid-template-columns: repeat(2, 1fr) !important; }
+            .pure-4col { grid-template-columns: repeat(2, 1fr) !important; }
+        }
+        @media (max-width: 600px) {
+            .pure-card-grid { grid-template-columns: 1fr !important; }
+            #pureFinancialCard .pure-data-grid.pure-3col { grid-template-columns: 1fr !important; }
+            .pure-fiscal-row { flex-wrap: wrap !important; }
+            #card-asfixia { flex-direction: column !important; }
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,600;14..32,700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="pure-container">
+    <section id="pureDashboard" class="pure-section" aria-label="Painel Caso Real Anonimizado v13.12.2-i18n">
+
+        <!-- HEADER -->
+        <div class="pure-section-header">
+            <div class="pure-section-title">
+                <span class="pure-badge-version">v13.12.2-i18n</span>
+                <span id="pure-title-text" data-pt="RECONSTITUIÇÃO DA VERDADE MATERIAL — SESSÃO" data-en="RECONSTRUCTION OF MATERIAL TRUTH — SESSION">RECONSTITUIÇÃO DA VERDADE MATERIAL — SESSÃO</span>
+                <span id="pure-session-id" class="pure-mono">UNIFED-MMLADX8Q-CV69L</span>
+            </div>
+            <div class="pure-session-badge">
+                <span class="pure-label">SHA-256</span>
+                <span id="pure-hash-prefix" class="pure-mono pure-hash">5150e767...</span>
+            </div>
+        </div>
+
+        <div class="pure-operator-badge" style="margin-top: 5px; font-family: monospace; font-size: 0.85em; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 4px;">
+            ID_OPERADOR_FORENSE: <span class="pure-value-warn" style="color: #00e5ff;">UNIFED-A.S.-9W3HI [VALIDADO/eIDAS]</span>
+        </div>
+
+        <!-- SUJEITO PASSIVO -->
+        <div class="pure-subject-header" style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+            <div class="pure-data-block" style="flex:1; background: rgba(255,255,255,0.03); border-radius: 6px; padding: 12px 14px;">
+                <div class="pure-data-label">Sujeito Passivo</div>
+                <div id="pure-subject-name" class="pure-subject-value" style="font-size:1rem; font-weight:600; color:#00E5FF;">---</div>
+            </div>
+            <div class="pure-data-block" style="flex:1; background: rgba(255,255,255,0.03); border-radius: 6px; padding: 12px 14px;">
+                <div class="pure-data-label">NIF</div>
+                <div id="pure-subject-nif" class="pure-subject-value" style="font-size:1rem; font-weight:600; color:#00E5FF;">---</div>
+            </div>
+            <div class="pure-data-block" style="flex:1; background: rgba(255,255,255,0.03); border-radius: 6px; padding: 12px 14px;">
+                <div class="pure-data-label">Plataforma</div>
+                <div id="pure-subject-platform" class="pure-subject-value" style="font-size:1rem; font-weight:600; color:#00E5FF;">---</div>
+            </div>
+        </div>
+
+        <!-- Evidências (oculto até script) -->
+        <div id="pureEvidenceSection" class="evidence-management-section-solid" style="margin-bottom:1rem;display:none;flex-direction:row;flex-wrap:wrap;gap:0.75rem;align-items:center;">
+            <div style="display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+                <div class="evidence-management-btn-solid" style="flex:1; cursor:default;"><span><i class="fas fa-folder-open"></i> EVIDÊNCIAS CARREGADAS</span><span id="pure-evidence-count-display" class="evidence-count-solid">0</span></div>
+                <div class="pure-evidence-stats" style="display:flex; gap:0.75rem;">
+                    <div class="pure-evidence-item" style="background:rgba(0,229,255,0.08); padding:4px 8px; border-radius:4px;">CTRL: <span id="pure-ctrl-qty">0</span></div>
+                    <div class="pure-evidence-item" style="background:rgba(0,229,255,0.08); padding:4px 8px; border-radius:4px;">SAF-T: <span id="pure-saft-qty">0</span></div>
+                    <div class="pure-evidence-item" style="background:rgba(0,229,255,0.08); padding:4px 8px; border-radius:4px;">FAT: <span id="pure-fat-qty">0</span></div>
+                    <div class="pure-evidence-item" style="background:rgba(0,229,255,0.08); padding:4px 8px; border-radius:4px;">EXT: <span id="pure-ext-qty">0</span></div>
+                    <div class="pure-evidence-item" style="background:rgba(0,229,255,0.08); padding:4px 8px; border-radius:4px;">DAC7: <span id="pure-dac7-qty">0</span></div>
+                </div>
+            </div>
+            <div class="counters-compact" style="margin-top:0.5rem; display:flex; gap:1rem;">
+                <div><span id="pure-counter-ctrl">0</span> CTRL</div>
+                <div><span id="pure-counter-saft">0</span> SAF-T</div>
+                <div><span id="pure-counter-fat">0</span> FAT</div>
+                <div><span id="pure-counter-ext">0</span> EXT</div>
+                <div><span id="pure-counter-dac7">0</span> DAC7</div>
+            </div>
+        </div>
+
+        <!-- CONTAINER DO GRÁFICO MAINCHART (oculto conforme retificação cirúrgica) -->
+        <!-- FIX-PH-01: ID renomeado de mainChartContainer → panel-mainChartContainer
+             MOTIVO: index.html contém <section id="mainChartContainer">. Quando panel.html
+             é injectado no DOM de index.html (via innerHTML ou appendChild), existiriam
+             dois elementos com o mesmo ID. document.getElementById('mainChartContainer')
+             retornaria o primeiro encontrado na ordem do DOM, podendo apontar para o canvas
+             errado. A unicidade de ID é obrigatória per HTML5 § 3.2.5.1.
+             Referência script.js: document.getElementById('panel-mainChartContainer').
+             DORA (UE) 2022/2554 · Halt Execution Protocol -->
+        <div id="panel-mainChartContainer" class="chart-section" style="display: none;">
+            <h3 id="chartTitle"><i class="fas fa-chart-line"></i> ANÁLISE DE DISCREPÂNCIAS · GAP FORENSE</h3>
+            <div class="chart-container">
+                <canvas id="mainChart"></canvas>
+            </div>
+        </div>
+
+        <div class="pure-card-grid">
+            <!-- RISCO ASFIXIA -->
+            <div class="pure-card pure-card-warn" id="card-asfixia" style="display:flex;flex-direction:row;align-items:center;gap:1.5rem;flex-wrap:wrap;">
+                <div style="flex:1;min-width:160px;">
+                    <div class="pure-card-title" style="margin-bottom:0.5rem;">⚠ RISCO DE ASFIXIA FINANCEIRA</div>
+                    <div class="pure-card-trend" style="font-size:0.78rem;color:#94a3b8;">Indicador de Probabilidade de Insolvência Forçada</div>
+                    <div style="font-size:0.68rem;color:#64748b;margin-top:4px;">Art. 405.º C. Civil · Verba 2.18 CIVA</div>
+                </div>
+                <div style="flex:0;text-align:right;min-width:100px;">
+                    <div id="pure-atf-score-val" style="font-size:2.8rem;font-weight:900;color:#F59E0B;font-family:monospace;line-height:1;">--%</div>
+                    <div style="font-size:0.65rem;color:#94a3b8;margin-top:4px;">IVA 6% / Bruto</div>
+                </div>
+            </div>
+
+            <!-- GRÁFICO DISCREPÂNCIA (OCULTO) - já com display none -->
+            <div class="chart-section" id="pure-chart-container" style="display: none;">
+                <div class="pure-chart-wrapper"><canvas id="discrepancyChart"></canvas></div>
+            </div>
+
+            <!-- PAINEL I - RECONSTITUIÇÃO -->
+            <div class="pure-card" id="pureFinancialCard">
+                <h3 class="pure-card-title"><span class="pure-icon">🔬</span> I. RECONSTITUIÇÃO DA VERDADE MATERIAL (EXTRATO vs SAF-T vs DAC7)</h3>
+                <div class="pure-data-grid pure-3col">
+                    <div class="pure-data-block"><div class="pure-data-label">Ganhos (Extrato Ledger)</div><div id="pure-ganhos" class="pure-data-value pure-value-primary">€ 0,00</div><div class="pure-data-sub">Fonte primária · Viagens efectuadas</div></div>
+                    <div class="pure-data-block"><div class="pure-data-label">Despesas / Comissões (BTOR)</div><div id="pure-despesas" class="pure-data-value pure-value-warn">€ 0,00</div><div class="pure-data-sub">Retidas pela plataforma (extrato)</div></div>
+                    <div class="pure-data-block"><div class="pure-data-label">Ganhos Líquidos (Extrato)</div><div id="pure-liquido" class="pure-data-value pure-value-neutral">€ 0,00</div><div class="pure-data-sub">Ganhos − Despesas (extrato real)</div></div>
+                    <div class="pure-data-block"><div class="pure-data-label">SAF-T Bruto (Declarado)</div><div id="pure-saft" class="pure-data-value pure-value-neutral">€ 0,00</div><div class="pure-data-sub">Faturação interna plataforma</div></div>
+                    <div class="pure-data-block"><div class="pure-data-label">DAC7 (Reportado à AT)</div><div id="pure-dac7" class="pure-data-value pure-value-neutral">€ 0,00</div><div class="pure-data-sub">2.º Semestre 2024 (Q4 activo)</div></div>
+                    <div class="pure-data-block"><div class="pure-data-label">Comissões Faturadas (BTF)</div><div id="pure-fatura" class="pure-data-value pure-value-warn">€ 0,00</div><div class="pure-data-sub">Valor em faturas emitidas (PT1124/PT1125)</div></div>
+                </div>
+            </div>
+
+            <!-- PAINEL II - SMOKING GUNS -->
+            <div class="pure-card pure-card-alert" id="pureDiscCard">
+                <h3 class="pure-card-title"><span class="pure-icon">🔫</span> II. DISCREPÂNCIAS APURADAS — PROVA RAINHA</h3>
+                <div class="pure-smoking-guns">
+                    <div class="pure-sg pure-sg-critical" id="smoking-gun-2">
+                        <div class="pure-sg-label">SMOKING GUN 2 — Despesas/Comissões (Extrato) vs Comissões Faturadas (BTF)</div>
+                        <div class="pure-sg-row"><span class="pure-sg-key">BTOR (Extrato):</span><span class="pure-sg-val" id="pure-sg2-btor-val">€ 0,00</span></div>
+                        <div class="pure-sg-row"><span class="pure-sg-key">BTF (Fatura):</span><span class="pure-sg-val" id="pure-sg2-btf-val">€ 0,00</span></div>
+                        <div class="pure-sg-delta"><span>OMISSÃO:</span><span id="pure-disc-c2" class="pure-delta-value">€ 0,00</span><span id="pure-disc-c2-pct" class="pure-delta-pct">0,00%</span></div>
+                        <div class="pure-sg-legal">Art. 36.º n.º 11 CIVA · Art. 119.º RGIT</div>
+                    </div>
+                    <div class="pure-sg pure-sg-secondary" id="smoking-gun-1">
+                        <div class="pure-sg-label">SMOKING GUN 1 — SAF-T Bruto vs Reportado DAC7 (AT)</div>
+                        <div class="pure-sg-row"><span class="pure-sg-key">SAF-T Bruto:</span><span class="pure-sg-val" id="pure-sg1-saft-val">€ 0,00</span></div>
+                        <div class="pure-sg-row"><span class="pure-sg-key">DAC7 (2.º Sem.):</span><span class="pure-sg-val" id="pure-sg1-dac7-val">€ 0,00</span></div>
+                        <div class="pure-sg-delta"><span>DIFERENÇA:</span><span id="pure-disc-saft-dac7" class="pure-delta-value">€ 0,00</span><span id="pure-disc-saft-pct" class="pure-delta-pct">0,00%</span></div>
+                        <div class="pure-sg-legal">Diretiva DAC7 (UE) 2021/514 · DL n.º 41/2023</div>
+                    </div>
+                </div>
+                <div class="pure-fiscal-row">
+                    <div class="pure-fiscal-item"><div class="pure-fiscal-label">IVA 23% Omitido</div><div id="pure-iva-23" class="pure-fiscal-value">€ 0,00</div><div class="pure-fiscal-sub">Art. 2.º n.º 1 al. i) CIVA</div></div>
+                    <div class="pure-fiscal-item"><div class="pure-fiscal-label">IVA 6% Omitido</div><div id="pure-iva-6" class="pure-fiscal-value">€ 0,00</div><div class="pure-fiscal-sub">Art. 18.º CIVA · Transporte</div></div>
+                    <div class="pure-fiscal-item"><div class="pure-fiscal-label">IRC Estimado (21%)</div><div id="pure-irc" class="pure-fiscal-value">€ 0,00</div><div class="pure-fiscal-sub">Art. 17.º CIRC</div></div>
+                </div>
+                <div class="pure-card-grid pure-3col" style="margin-top:14px;">
+                    <div class="pure-metric-card alert"><div class="pure-metric-label">Diferencial de Fluxo Auditado</div><div id="pure-disc-c2-grid" class="pure-metric-value">€ 0,00</div><div class="pure-metric-sublabel">Base: Art. 103.º RGIT</div></div>
+                    <div class="pure-metric-card warning" id="pure-asfixia-container"><div class="pure-metric-label">Risco de Asfixia Financeira</div><div id="pure-iva-devido" class="pure-metric-value">Calculando…</div><div class="pure-metric-sublabel">IVA 6% (Verba 2.18 Lista I CIVA)</div></div>
+                    <div class="pure-metric-card"><div class="pure-metric-label">Total Fluxos Não Sujeitos</div><div id="pure-nao-sujeitos" class="pure-metric-value pure-value-primary">€ 0,00</div><div class="pure-metric-sublabel">Campanhas + Gorjetas + Portagens</div></div>
+                </div>
+            </div>
+
+            <!-- PAINEL III - ATF (completo, original, mas oculto) -->
+            <div class="pure-card" id="pureATFCard" style="display: none;" data-forensic-module="atf">
+                <h3 class="pure-card-title"><span class="pure-icon">⏳</span><span id="pure-card3-title" data-pt="III. ANÁLISE TEMPORAL FORENSE (ATF) — LOTE GLOBAL (2.º SEMESTRE 2024)" data-en="III. FORENSIC TEMPORAL ANALYSIS (ATF) — GLOBAL BATCH (2nd SEMESTER 2024)">III. ANÁLISE TEMPORAL FORENSE (ATF) — LOTE GLOBAL (2.º SEMESTRE 2024)</span></h3>
+                <div class="pure-atf-grid">
+                    <div class="pure-atf-block pure-atf-sp"><div class="pure-atf-label" id="pure-atf-sp-label" data-pt="SCORE DE PERSISTÊNCIA" data-en="PERSISTENCE SCORE">SCORE DE PERSISTÊNCIA</div><div id="pure-atf-sp" class="pure-atf-big">40<span style="font-size:1rem;opacity:0.6">/100</span></div><div class="pure-atf-classify" id="pure-atf-status" data-pt="OMISSÃO PONTUAL / RISCO MODERADO" data-en="OCCASIONAL OMISSION / MODERATE RISK">OMISSÃO PONTUAL / RISCO MODERADO</div><div class="pure-atf-bar"><div class="pure-atf-bar-fill" style="width:40%;background:#F59E0B"></div></div></div>
+                    <div class="pure-atf-block"><div class="pure-atf-label" id="pure-atf-trend-label" data-pt="TENDÊNCIA" data-en="TREND">TENDÊNCIA</div><div id="pure-atf-trend" class="pure-atf-trend-val" data-pt="📉 DESCENDENTE" data-en="📉 DESCENDING">📉 DESCENDENTE</div><div class="pure-atf-sub" id="pure-atf-trend-sub" data-pt="Regressão linear (OLS) · 3 pontos" data-en="Linear regression (OLS) · 3 points">Regressão linear (OLS) · 3 pontos</div></div>
+                    <div class="pure-atf-block"><div class="pure-atf-label" id="pure-atf-outliers-label" data-pt="OUTLIERS > 2σ" data-en="OUTLIERS > 2σ">OUTLIERS > 2σ</div><div id="pure-atf-outliers" class="pure-atf-outlier-val">0 outliers &gt; 2σ</div><div class="pure-atf-sub" id="pure-atf-outliers-sub" data-pt="Sem picos estatisticamente anómalos" data-en="No statistically anomalous peaks">Sem picos estatisticamente anómalos</div></div>
+                    <div class="pure-atf-block"><div class="pure-atf-label" id="pure-atf-history-label" data-pt="HISTÓRICO" data-en="HISTORY">HISTÓRICO</div><div id="pure-atf-meses" class="pure-atf-meses-val" data-pt="2.º Semestre 2024 — 4 meses com dados (Set–Dez)" data-en="2nd Semester 2024 — 4 months with data (Sep–Dec)">2.º Semestre 2024 — 4 meses com dados (Set–Dez)</div><div class="pure-atf-sub" id="pure-atf-meses-sub" data-pt="4 meses com dados (Set–Dez 2024)" data-en="4 months with data (Sep–Dec 2024)">4 meses com dados (Set–Dez 2024)</div></div>
+                </div>
+                <div class="pure-atf-note" id="pure-atf-note"><strong id="pure-atf-note-strong" data-pt="Nota Metodológica:" data-en="Methodological Note:">Nota Metodológica:</strong><span id="pure-atf-note-text" data-pt="Score de Persistência calculado pelo motor computeTemporalAnalysis() sobre 4 meses de histórico (Set/Out/Nov/Dez 2024). SP calculado sobre o lote global (dados verificados UNIFED-MMLADX8Q-CV69L). As discrepâncias absolutas (C2: €2.184,95 — 89,26% · C1: €1.951,42 — 23,72%) mantêm relevância jurídica independente." data-en="Persistence Score calculated by computeTemporalAnalysis() engine over 4 months of history (Sep/Oct/Nov/Dec 2024). SP calculated over the global batch (verified data UNIFED-MMLADX8Q-CV69L). The absolute discrepancies (C2: €2,184.95 — 89.26% · C1: €1,951.42 — 23.72%) maintain independent legal relevance.">Score de Persistência calculado pelo motor computeTemporalAnalysis() sobre 4 meses de histórico (Set/Out/Nov/Dez 2024). SP calculado sobre o lote global (dados verificados UNIFED-MMLADX8Q-CV69L). As discrepâncias absolutas (C2: €2.184,95 — 89,26% · C1: €1.951,42 — 23,72%) mantêm relevância jurídica independente.</span></div>
+                <div style="margin-top:16px;background:rgba(255,255,255,0.03);border:1px solid rgba(0,229,255,0.15);border-radius:10px;padding:14px;">
+                    <div style="font-size:0.65rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">📈 EVOLUÇÃO TEMPORAL — DISCREPÂNCIA MENSAL</div>
+                    <canvas id="atfChartCanvas" width="800" height="260" style="width:100%;height:auto;max-height:260px;display:block;"></canvas>
+                </div>
+                <div style="text-align:center;margin-top:16px"><button onclick="if(typeof openATFModal === 'function') openATFModal();" class="pure-btn-atf" id="pure-atf-btn" data-pt="⏳ ABRIR ANÁLISE TEMPORAL FORENSE COMPLETA" data-en="⏳ OPEN COMPLETE FORENSIC TEMPORAL ANALYSIS" title="Abrir modal ATF completo / Open complete ATF modal"><span id="pure-atf-btn-text">⏳ ABRIR ANÁLISE TEMPORAL FORENSE COMPLETA</span></button></div>
+            </div>
+
+            <!-- PAINEL IV - ZONA CINZENTA (completa, mas com valores hardcoded removidos e placeholder) -->
+            <div class="pure-card white-collar-module" id="pureZonaCinzentaCard" style="display: none;" data-forensic-module="greyzone">
+                <h3 class="pure-card-title"><span class="pure-icon">🔍</span><span id="pure-card4-title" data-pt="IV. ZONA CINZENTA — VALORES NÃO SUJEITOS A COMISSÃO (ISOLADOS)" data-en="IV. GREY ZONE — VALUES NOT SUBJECT TO COMMISSION (ISOLATED)">IV. ZONA CINZENTA — VALORES NÃO SUJEITOS A COMISSÃO (ISOLADOS)</span></h3>
+                <p class="pure-zc-intro" id="pure-zc-intro">
+                    <span id="pure-zc-intro-text" data-pt="O sistema isolou" data-en="The system isolated">O sistema isolou</span>
+                    <strong id="pure-zc-amount">€ 0,00</strong>
+                    <span id="pure-zc-intro-end" data-pt="em fluxos não sujeitos a comissão pela plataforma." data-en="in flows not subject to commission by the platform.">em fluxos não sujeitos a comissão pela plataforma.</span>
+                </p>
+                <div class="pure-zc-grid">
+                    <div class="pure-zc-item"><span class="pure-zc-label" id="pure-zc-campanhas-label" data-pt="Campanhas (total período)" data-en="Campaigns (total period)">Campanhas (total período)</span><span id="pure-nc-campanhas" class="pure-zc-val">€ 0,00</span><span class="pure-zc-tag" id="pure-zc-campanhas-tag" data-pt="Isento comissão · 0%" data-en="Commission exempt · 0%">Isento comissão · 0%</span></div>
+                    <div class="pure-zc-item"><span class="pure-zc-label" id="pure-zc-gorjetas-label" data-pt="Gorjetas (total período)" data-en="Tips (total period)">Gorjetas (total período)</span><span id="pure-nc-gorjetas" class="pure-zc-val">€ 0,00</span><span class="pure-zc-tag" id="pure-zc-gorjetas-tag" data-pt="Transferência P2P · 0%" data-en="P2P Transfer · 0%">Transferência P2P · 0%</span></div>
+                    <div class="pure-zc-item"><span class="pure-zc-label" id="pure-zc-portagens-label" data-pt="Portagens (total período)" data-en="Tolls (total period)">Portagens (total período)</span><span id="pure-nc-portagens" class="pure-zc-val">€ 0,00</span><span class="pure-zc-tag" id="pure-zc-portagens-tag" data-pt="Reembolso operacional · 0%" data-en="Operational reimbursement · 0%">Reembolso operacional · 0%</span></div>
+                    <div class="pure-zc-item"><span class="pure-zc-label" id="pure-zc-cancelamentos-label" data-pt="Taxas de Cancelamento (total período)" data-en="Cancellation Fees (total period)">Taxas de Cancelamento (total período)</span><span id="pure-nc-cancelamentos" class="pure-zc-val">€ 0,00</span><span class="pure-zc-tag" id="pure-zc-cancelamentos-tag" data-pt="já em Ganhos · comissão incluída nos −Despesas" data-en="already in Earnings · commission included in −Expenses">já em Ganhos · comissão incluída nos −Despesas</span></div>
+                    <div class="pure-zc-item pure-zc-total"><span class="pure-zc-label" id="pure-zc-total-label" data-pt="Total Não Sujeitos (Out 2024)" data-en="Total Not Subject (Oct 2024)">Total Não Sujeitos (Out 2024)</span><span id="pure-nc-total" class="pure-zc-val">€ 0,00</span><span class="pure-zc-tag" id="pure-zc-total-tag" data-pt="Fora da base tributável TVDE" data-en="Outside TVDE taxable base">Fora da base tributável TVDE</span></div>
+                </div>
+                <div id="gapConciliacaoC1" style="color: #ef4444; border-left: 2px solid #ef4444; padding-left: 8px; margin-top: 10px; display: none;">
+                    <strong>GAP DE CONCILIAÇÃO (C1): <span id="gapC1Value">0,00 €</span></strong><br>
+                    <span style="font-size: 0.8em;">Estado: Indício de Omissão Declarativa (Base Bruta não justificada por fluxos isentos).</span>
+                </div>
+                <div class="pure-zc-question" id="pure-zc-question">
+                    <strong id="pure-zc-question-strong" data-pt="Questão para contraditório (Art. 327.º CPP):" data-en="Question for contradiction (Art. 327 CPP):">Questão para contraditório (Art. 327.º CPP):</strong>
+                    <span id="pure-zc-question-text" data-pt="Aguardando carregamento do caso real." data-en="Awaiting real case loading.">Aguardando carregamento do caso real.</span>
+                </div>
+            </div>
+
+            <!-- PAINEL V - VEREDICTO -->
+            <div class="pure-card pure-card-verdict" id="pureVerdictCard">
+                <div class="pure-verdict-row" style="display:flex; gap:1rem; flex-wrap:wrap;">
+                    <div class="pure-verdict-block" style="flex:1"><div class="pure-verdict-label">VEREDICTO PERICIAL</div><div id="pure-verdict" class="pure-verdict-value">RISCO CRÍTICO · DESVIO PADRÃO > 2σ</div><div id="pure-verdict-pct" class="pure-verdict-pct">89,26%</div><div class="pure-verdict-basis">Art. 119.º RGIT · Art. 125.º CPP</div></div>
+                    <div class="pure-integrity-block" style="flex:1"><div class="pure-verdict-label">INTEGRIDADE SHA-256</div><div id="pure-hash-prefix-verdict" class="pure-mono pure-hash-lg">5150e767...</div><div class="pure-verdict-basis">RFC 3161 · ISO/IEC 27037:2012</div><div class="pure-verdict-basis">Dados reais · demoMode: false · DORA Compliant</div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TRIANGULAÇÃO -->
+        <div class="pure-card" id="pureTriangulationCard" style="margin-top: 16px;">
+            <h3 class="pure-card-title"><span class="pure-icon">📊</span>TRIANGULAÇÃO FINANCEIRA · BIG DATA ALGORITHM</h3>
+            <div class="pure-data-grid pure-4col" style="display: grid; grid-template-columns: repeat(4,1fr); gap: 12px;">
+                <div class="pure-data-block"><div class="pure-data-label">GANHOS (EXTRATO)</div><div id="pure-ganhos-tri" class="pure-data-value pure-value-primary">€ 0,00</div></div>
+                <div class="pure-data-block"><div class="pure-data-label">DESPESAS/COMISSÕES</div><div id="pure-despesas-tri" class="pure-data-value pure-value-warn">€ 0,00</div></div>
+                <div class="pure-data-block"><div class="pure-data-label">LÍQUIDO (EXTRATO)</div><div id="pure-liquido-tri" class="pure-data-value pure-value-neutral">€ 0,00</div></div>
+                <div class="pure-data-block"><div class="pure-data-label">FATURADO (BTF)</div><div id="pure-fatura-tri" class="pure-data-value pure-value-neutral">€ 0,00</div></div>
+            </div>
+        </div>
+
+        <!-- atfChartCanvas movido para dentro de #pureATFCard (RET-PH-02) -->
+
+        <div id="pure-tsa-anchor" style="font-family: monospace; font-size: 0.8em; margin-top: 4px;">
+            Selo de Tempo Local (ISO 27037): <span style="color: #10b981;">ATIVO — CUSTÓDIA NÍVEL 1</span>
+        </div>
+        <div style="display:none;">
+            <div id="pure-verdict-text"></div><div id="pure-timestamp-ots"></div><div id="pure-blockchain-status"></div>
+            <div id="pure-atf-zscore"></div><div id="pure-atf-confianca"></div><div id="pure-ganhos-extrato"></div>
+            <div id="pure-despesas-extrato"></div><div id="pure-ganhos-liquidos-extrato"></div><div id="pure-saft-bruto-val"></div>
+            <div id="pure-dac7-val"></div><div id="pure-iva-devido-val"></div><div id="pure-nao-declarado-val"></div>
+        </div>
+    </section>
+</div>
+
+<script>
+    (function() {
+        // Garantir que o container do gráfico mainChart e o pure-chart-container fiquem ocultos
+        const mainChartContainer = document.getElementById('panel-mainChartContainer'); // FIX-PH-01
+        if(mainChartContainer) mainChartContainer.style.display = 'none';
+        const chartContainer = document.getElementById('pure-chart-container');
+        if(chartContainer) chartContainer.style.display = 'none';
+        const atfCard = document.getElementById('pureATFCard');
+        if(atfCard) atfCard.style.display = 'none';
+        const greyCard = document.getElementById('pureZonaCinzentaCard');
+        if(greyCard) greyCard.style.display = 'none';
+
+        // Assegurar que o valor da zona cinzenta está a zeros e placeholder da questão
+        const zcAmount = document.getElementById('pure-zc-amount');
+        if(zcAmount) zcAmount.innerText = '€ 0,00';
+        const gapC1 = document.getElementById('gapC1Value');
+        if(gapC1) gapC1.innerText = '0,00 €';
+        const questionSpan = document.getElementById('pure-zc-question-text');
+        if(questionSpan && questionSpan.innerText.trim() === '') {
+            questionSpan.innerText = 'Aguardando carregamento do caso real.';
+        }
+
+        // Zerar todos os campos numéricos visíveis
+        const zeroFields = ['pure-ganhos','pure-despesas','pure-liquido','pure-saft','pure-dac7','pure-fatura',
+                            'pure-sg2-btor-val','pure-sg2-btf-val','pure-disc-c2','pure-disc-saft-dac7',
+                            'pure-iva-23','pure-iva-6','pure-irc','pure-nao-sujeitos','pure-ganhos-tri','pure-despesas-tri',
+                            'pure-liquido-tri','pure-fatura-tri','pure-nc-campanhas','pure-nc-gorjetas','pure-nc-portagens','pure-nc-total'];
+        zeroFields.forEach(id => {
+            const el = document.getElementById(id);
+            if(el) el.innerText = '€ 0,00';
+        });
+        const pureDiscC2pct = document.getElementById('pure-disc-c2-pct');
+        if(pureDiscC2pct) pureDiscC2pct.innerText = '0,00%';
+        const pureDiscSaftPct = document.getElementById('pure-disc-saft-pct');
+        if(pureDiscSaftPct) pureDiscSaftPct.innerText = '0,00%';
+        const atfScore = document.getElementById('pure-atf-score-val');
+        if(atfScore) atfScore.innerText = '--%';
+    })();
+</script>
+    <!-- ===== BATERIA DE CONTRADITÓRIO v1.0.0 — INTEGRAÇÃO v13.12.3-PRO ===== -->
+    <script src="legal_tactics_engine_v1.0.js"></script>
+    <script src="legal_tactics_ui_v1.0.js"></script>
+    <script src="legal_tactics_pdf_export_v1.0.js"></script>
+    <script src="legal_tactics_orchestrator_v1.0.js"></script>
+    <script src="INTEGRATION_MANIFEST_v13.12.3-PRO.js"></script>
+</body>
+</html>
